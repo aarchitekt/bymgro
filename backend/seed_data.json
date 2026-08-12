@@ -1,0 +1,1864 @@
+{
+  "sessions": [
+    {
+      "date": "2026-04-30",
+      "exercises": [
+        {
+          "name": "Rudern",
+          "muscle": null,
+          "day": "push",
+          "sets": [
+            {
+              "value": "10min"
+            }
+          ]
+        },
+        {
+          "name": "Push-Up",
+          "muscle": "R\u00fccken",
+          "day": "push",
+          "sets": [
+            {
+              "weight": null,
+              "reps": 15.0
+            },
+            {
+              "weight": null,
+              "reps": 10.0
+            },
+            {
+              "weight": null,
+              "reps": 5.0
+            }
+          ]
+        },
+        {
+          "name": "Benchpress",
+          "muscle": "Brust",
+          "day": "push",
+          "sets": [
+            {
+              "weight": 14.0,
+              "reps": 12.0
+            },
+            {
+              "weight": 14.0,
+              "reps": 10.0
+            },
+            {
+              "weight": 14.0,
+              "reps": 8.0
+            }
+          ]
+        },
+        {
+          "name": "Incline-Bench press",
+          "muscle": "Brust",
+          "day": "push",
+          "sets": [
+            {
+              "weight": 12.0,
+              "reps": 12.0
+            },
+            {
+              "weight": 12.0,
+              "reps": 12.0
+            },
+            {
+              "weight": 12.0,
+              "reps": 12.0
+            }
+          ]
+        },
+        {
+          "name": "Overhead Press",
+          "muscle": "Schulter",
+          "day": "push",
+          "sets": [
+            {
+              "weight": 10.0,
+              "reps": 10.0
+            },
+            {
+              "weight": 12.0,
+              "reps": 10.0
+            },
+            {
+              "weight": 12.0,
+              "reps": 8.0
+            }
+          ]
+        },
+        {
+          "name": "Plank",
+          "muscle": null,
+          "day": "pull",
+          "sets": [
+            {
+              "value": "x"
+            }
+          ]
+        },
+        {
+          "name": "Leg Raises or situps",
+          "muscle": null,
+          "day": "pull",
+          "sets": [
+            {
+              "value": "x"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "date": "2026-05-02",
+      "exercises": [
+        {
+          "name": "Rudern",
+          "muscle": null,
+          "day": "push",
+          "sets": [
+            {
+              "value": 10.0
+            }
+          ]
+        },
+        {
+          "name": "Pull Up (Supported",
+          "muscle": "R\u00fccken",
+          "day": "pull",
+          "sets": [
+            {
+              "weight": 30.0,
+              "reps": 10.0
+            },
+            {
+              "weight": 30.0,
+              "reps": 8.0
+            },
+            {
+              "weight": 30.0,
+              "reps": 8.0
+            }
+          ]
+        },
+        {
+          "name": "Lat Pull Down",
+          "muscle": "R\u00fccken",
+          "day": "pull",
+          "sets": [
+            {
+              "weight": 30.0,
+              "reps": 12.0
+            },
+            {
+              "weight": 30.0,
+              "reps": 10.0
+            },
+            {
+              "weight": 30.0,
+              "reps": 10.0
+            }
+          ]
+        },
+        {
+          "name": "Chest-Supported Row",
+          "muscle": "R\u00fccken",
+          "day": "pull",
+          "sets": [
+            {
+              "weight": 30.0,
+              "reps": 12.0
+            },
+            {
+              "weight": 30.0,
+              "reps": 10.0
+            },
+            {
+              "weight": 30.0,
+              "reps": 8.0
+            }
+          ]
+        },
+        {
+          "name": "Kabelziehen",
+          "muscle": "Trizeps",
+          "day": "pull",
+          "sets": [
+            {
+              "weight": 12.5,
+              "reps": 12.0
+            },
+            {
+              "weight": 12.5,
+              "reps": 10.0
+            },
+            {
+              "weight": 12.5,
+              "reps": 10.0
+            }
+          ]
+        },
+        {
+          "name": "Bizeps Curl",
+          "muscle": "Bizeps",
+          "day": "pull",
+          "sets": [
+            {
+              "weight": 7.0,
+              "reps": 8.0
+            },
+            {
+              "weight": 7.0,
+              "reps": 5.0
+            },
+            {
+              "weight": 7.0,
+              "reps": 5.0
+            }
+          ]
+        },
+        {
+          "name": "Plank",
+          "muscle": null,
+          "day": "pull",
+          "sets": [
+            {
+              "value": 30.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "date": "2026-05-04",
+      "exercises": [
+        {
+          "name": "Rudern",
+          "muscle": null,
+          "day": "push",
+          "sets": [
+            {
+              "value": 10.0
+            }
+          ]
+        },
+        {
+          "name": "Push-Up",
+          "muscle": "R\u00fccken",
+          "day": "push",
+          "sets": [
+            {
+              "weight": null,
+              "reps": 10.0
+            },
+            {
+              "weight": null,
+              "reps": 10.0
+            },
+            {
+              "weight": null,
+              "reps": 10.0
+            }
+          ]
+        },
+        {
+          "name": "Benchpress",
+          "muscle": "Brust",
+          "day": "push",
+          "sets": [
+            {
+              "weight": 14.0,
+              "reps": 12.0
+            },
+            {
+              "weight": 14.0,
+              "reps": 10.0
+            },
+            {
+              "weight": 14.0,
+              "reps": 8.0
+            }
+          ]
+        },
+        {
+          "name": "Incline-Bench press",
+          "muscle": "Brust",
+          "day": "push",
+          "sets": [
+            {
+              "weight": 12.0,
+              "reps": 12.0
+            },
+            {
+              "weight": 12.0,
+              "reps": 10.0
+            },
+            {
+              "weight": 12.0,
+              "reps": 8.0
+            }
+          ]
+        },
+        {
+          "name": "Overhead Press",
+          "muscle": "Schulter",
+          "day": "push",
+          "sets": [
+            {
+              "weight": 10.0,
+              "reps": 12.0
+            },
+            {
+              "weight": 10.0,
+              "reps": 10.0
+            },
+            {
+              "weight": 10.0,
+              "reps": 6.0
+            }
+          ]
+        },
+        {
+          "name": "Laterial Rise",
+          "muscle": "Schulter",
+          "day": "push",
+          "sets": [
+            {
+              "weight": 5.0,
+              "reps": 12.0
+            },
+            {
+              "weight": 5.0,
+              "reps": 8.0
+            }
+          ]
+        },
+        {
+          "name": "Dips Supported",
+          "muscle": null,
+          "day": "push",
+          "sets": [
+            {
+              "weight": 28.0,
+              "reps": null
+            }
+          ]
+        },
+        {
+          "name": "Plank",
+          "muscle": null,
+          "day": "pull",
+          "sets": [
+            {
+              "value": 30.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "date": "2026-05-08",
+      "exercises": [
+        {
+          "name": "Rudern",
+          "muscle": null,
+          "day": "push",
+          "sets": [
+            {
+              "value": 10.0
+            }
+          ]
+        },
+        {
+          "name": "Push-Up",
+          "muscle": "R\u00fccken",
+          "day": "push",
+          "sets": [
+            {
+              "weight": null,
+              "reps": 12.0
+            },
+            {
+              "weight": null,
+              "reps": 12.0
+            },
+            {
+              "weight": null,
+              "reps": 12.0
+            }
+          ]
+        },
+        {
+          "name": "Benchpress",
+          "muscle": "Brust",
+          "day": "push",
+          "sets": [
+            {
+              "weight": 14.0,
+              "reps": 16.0
+            },
+            {
+              "weight": 14.0,
+              "reps": 11.0
+            },
+            {
+              "weight": 14.0,
+              "reps": 8.0
+            }
+          ]
+        },
+        {
+          "name": "Incline-Bench press",
+          "muscle": "Brust",
+          "day": "push",
+          "sets": [
+            {
+              "weight": 14.0,
+              "reps": 8.0
+            },
+            {
+              "weight": 12.0,
+              "reps": 8.0
+            },
+            {
+              "weight": 12.0,
+              "reps": 10.0
+            }
+          ]
+        },
+        {
+          "name": "Overhead Press",
+          "muscle": "Schulter",
+          "day": "push",
+          "sets": [
+            {
+              "weight": 10.0,
+              "reps": 13.0
+            },
+            {
+              "weight": 10.0,
+              "reps": 8.0
+            },
+            {
+              "weight": 10.0,
+              "reps": 8.0
+            }
+          ]
+        },
+        {
+          "name": "Laterial Rise",
+          "muscle": "Schulter",
+          "day": "push",
+          "sets": [
+            {
+              "weight": 5.0,
+              "reps": 12.0
+            },
+            {
+              "weight": 5.0,
+              "reps": 10.0
+            },
+            {
+              "weight": 5.0,
+              "reps": 8.0
+            }
+          ]
+        },
+        {
+          "name": "Plank",
+          "muscle": null,
+          "day": "pull",
+          "sets": [
+            {
+              "value": 45.0
+            }
+          ]
+        },
+        {
+          "name": "Leg Raises or situps",
+          "muscle": null,
+          "day": "pull",
+          "sets": [
+            {
+              "value": "20,20,15"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "date": "2026-05-11",
+      "exercises": [
+        {
+          "name": "Rudern",
+          "muscle": null,
+          "day": "push",
+          "sets": [
+            {
+              "value": 10.0
+            }
+          ]
+        },
+        {
+          "name": "Benchpress",
+          "muscle": "Brust",
+          "day": "push",
+          "sets": [
+            {
+              "weight": 14.0,
+              "reps": 16.0
+            },
+            {
+              "weight": 14.0,
+              "reps": 14.0
+            },
+            {
+              "weight": 14.0,
+              "reps": 10.0
+            }
+          ]
+        },
+        {
+          "name": "Incline-Bench press",
+          "muscle": "Brust",
+          "day": "push",
+          "sets": [
+            {
+              "weight": 14.0,
+              "reps": 10.0
+            },
+            {
+              "weight": 12.0,
+              "reps": 10.0
+            },
+            {
+              "weight": 14.0,
+              "reps": 8.0
+            }
+          ]
+        },
+        {
+          "name": "Overhead Press",
+          "muscle": "Schulter",
+          "day": "push",
+          "sets": [
+            {
+              "weight": 10.0,
+              "reps": 12.0
+            },
+            {
+              "weight": 10.0,
+              "reps": 10.0
+            },
+            {
+              "weight": 10.0,
+              "reps": 10.0
+            }
+          ]
+        },
+        {
+          "name": "Laterial Rise",
+          "muscle": "Schulter",
+          "day": "push",
+          "sets": [
+            {
+              "weight": 5.0,
+              "reps": 12.0
+            },
+            {
+              "weight": 5.0,
+              "reps": 10.0
+            },
+            {
+              "weight": 5.0,
+              "reps": 10.0
+            }
+          ]
+        },
+        {
+          "name": "Dips Supported",
+          "muscle": null,
+          "day": "push",
+          "sets": [
+            {
+              "weight": 28.0,
+              "reps": 12.0
+            },
+            {
+              "weight": 28.0,
+              "reps": 10.0
+            },
+            {
+              "weight": 28.0,
+              "reps": 8.0
+            }
+          ]
+        },
+        {
+          "name": "Plank",
+          "muscle": null,
+          "day": "pull",
+          "sets": [
+            {
+              "value": 45.0
+            }
+          ]
+        },
+        {
+          "name": "Leg Raises or situps",
+          "muscle": null,
+          "day": "pull",
+          "sets": [
+            {
+              "value": "20,15,10"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "date": "2026-05-13",
+      "exercises": [
+        {
+          "name": "Rudern",
+          "muscle": null,
+          "day": "push",
+          "sets": [
+            {
+              "value": 5.0
+            }
+          ]
+        },
+        {
+          "name": "Pull Up (Supported",
+          "muscle": "R\u00fccken",
+          "day": "pull",
+          "sets": [
+            {
+              "weight": 21.0,
+              "reps": 11.0
+            },
+            {
+              "weight": 21.0,
+              "reps": 8.0
+            },
+            {
+              "weight": 28.0,
+              "reps": 12.0
+            }
+          ]
+        },
+        {
+          "name": "Lat Pull Down",
+          "muscle": "R\u00fccken",
+          "day": "pull",
+          "sets": [
+            {
+              "weight": 35.0,
+              "reps": 12.0
+            },
+            {
+              "weight": 35.0,
+              "reps": 10.0
+            },
+            {
+              "weight": 35.0,
+              "reps": 10.0
+            }
+          ]
+        },
+        {
+          "name": "Chest-Supported Row",
+          "muscle": "R\u00fccken",
+          "day": "pull",
+          "sets": [
+            {
+              "weight": 35.0,
+              "reps": 12.0
+            },
+            {
+              "weight": 35.0,
+              "reps": 12.0
+            },
+            {
+              "weight": 35.0,
+              "reps": 12.0
+            }
+          ]
+        },
+        {
+          "name": "Kabelziehen",
+          "muscle": "Trizeps",
+          "day": "pull",
+          "sets": [
+            {
+              "weight": 15.0,
+              "reps": 15.0
+            },
+            {
+              "weight": 15.0,
+              "reps": 12.0
+            },
+            {
+              "weight": 15.0,
+              "reps": 18.0
+            }
+          ]
+        },
+        {
+          "name": "Bizeps Curl",
+          "muscle": "Bizeps",
+          "day": "pull",
+          "sets": [
+            {
+              "weight": 7.0,
+              "reps": 12.0
+            },
+            {
+              "weight": 7.0,
+              "reps": 10.0
+            },
+            {
+              "weight": 7.0,
+              "reps": 10.0
+            }
+          ]
+        },
+        {
+          "name": "Plank",
+          "muscle": null,
+          "day": "pull",
+          "sets": [
+            {
+              "value": 50.0
+            }
+          ]
+        },
+        {
+          "name": "Leg Raises or situps",
+          "muscle": null,
+          "day": "pull",
+          "sets": [
+            {
+              "value": "20,15,10"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "date": "2026-06-02",
+      "exercises": [
+        {
+          "name": "Rudern",
+          "muscle": null,
+          "day": "push",
+          "sets": [
+            {
+              "value": 5.0
+            }
+          ]
+        },
+        {
+          "name": "Benchpress",
+          "muscle": "Brust",
+          "day": "push",
+          "sets": [
+            {
+              "weight": 16.0,
+              "reps": 14.0
+            },
+            {
+              "weight": 16.0,
+              "reps": 12.0
+            },
+            {
+              "weight": 16.0,
+              "reps": 10.0
+            }
+          ]
+        },
+        {
+          "name": "Incline-Bench press",
+          "muscle": "Brust",
+          "day": "push",
+          "sets": [
+            {
+              "weight": 14.0,
+              "reps": 12.0
+            },
+            {
+              "weight": 14.0,
+              "reps": 10.0
+            },
+            {
+              "weight": 14.0,
+              "reps": 8.0
+            }
+          ]
+        },
+        {
+          "name": "Overhead Press",
+          "muscle": "Schulter",
+          "day": "push",
+          "sets": [
+            {
+              "weight": 12.0,
+              "reps": 10.0
+            }
+          ]
+        },
+        {
+          "name": "Laterial Rise",
+          "muscle": "Schulter",
+          "day": "push",
+          "sets": [
+            {
+              "weight": 8.0,
+              "reps": null
+            },
+            {
+              "weight": 8.0,
+              "reps": null
+            },
+            {
+              "weight": 8.0,
+              "reps": null
+            }
+          ]
+        },
+        {
+          "name": "Dips Supported",
+          "muscle": null,
+          "day": "push",
+          "sets": [
+            {
+              "weight": 21.0,
+              "reps": 14.0
+            },
+            {
+              "weight": 21.0,
+              "reps": 12.0
+            },
+            {
+              "weight": 21.0,
+              "reps": 10.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "date": "2026-06-04",
+      "exercises": [
+        {
+          "name": "Rudern",
+          "muscle": null,
+          "day": "push",
+          "sets": [
+            {
+              "value": 5.0
+            }
+          ]
+        },
+        {
+          "name": "Pull Up (Supported",
+          "muscle": "R\u00fccken",
+          "day": "pull",
+          "sets": [
+            {
+              "weight": 21.0,
+              "reps": 12.0
+            },
+            {
+              "weight": 21.0,
+              "reps": 10.0
+            },
+            {
+              "weight": 21.0,
+              "reps": 6.0
+            }
+          ]
+        },
+        {
+          "name": "Lat Pull Down",
+          "muscle": "R\u00fccken",
+          "day": "pull",
+          "sets": [
+            {
+              "weight": 35.0,
+              "reps": 6.0
+            },
+            {
+              "weight": 35.0,
+              "reps": 8.0
+            },
+            {
+              "weight": 35.0,
+              "reps": 8.0
+            }
+          ]
+        },
+        {
+          "name": "Chest-Supported Row",
+          "muscle": "R\u00fccken",
+          "day": "pull",
+          "sets": [
+            {
+              "weight": 50.0,
+              "reps": 12.0
+            },
+            {
+              "weight": 50.0,
+              "reps": 10.0
+            }
+          ]
+        },
+        {
+          "name": "Kabelziehen",
+          "muscle": "Trizeps",
+          "day": "pull",
+          "sets": [
+            {
+              "weight": 20.0,
+              "reps": null
+            },
+            {
+              "weight": 20.0,
+              "reps": null
+            },
+            {
+              "weight": 20.0,
+              "reps": null
+            }
+          ]
+        },
+        {
+          "name": "Bizeps Curl",
+          "muscle": "Bizeps",
+          "day": "pull",
+          "sets": [
+            {
+              "weight": 10.0,
+              "reps": 12.0
+            },
+            {
+              "weight": 10.0,
+              "reps": 7.0
+            },
+            {
+              "weight": 10.0,
+              "reps": 4.0
+            }
+          ]
+        },
+        {
+          "name": "Rucksack",
+          "muscle": "Bauch",
+          "day": "pull",
+          "sets": [
+            {
+              "weight": 40.0,
+              "reps": null
+            },
+            {
+              "weight": 40.0,
+              "reps": null
+            },
+            {
+              "weight": 40.0,
+              "reps": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "date": "2026-06-09",
+      "exercises": [
+        {
+          "name": "Rudern",
+          "muscle": null,
+          "day": "push",
+          "sets": [
+            {
+              "value": 7.0
+            }
+          ]
+        },
+        {
+          "name": "Push-Up",
+          "muscle": "R\u00fccken",
+          "day": "push",
+          "sets": [
+            {
+              "weight": null,
+              "reps": 25.0
+            },
+            {
+              "weight": null,
+              "reps": 15.0
+            },
+            {
+              "weight": null,
+              "reps": 10.0
+            }
+          ]
+        },
+        {
+          "name": "Benchpress",
+          "muscle": "Brust",
+          "day": "push",
+          "sets": [
+            {
+              "weight": 16.0,
+              "reps": 7.0
+            },
+            {
+              "weight": 16.0,
+              "reps": 5.0
+            },
+            {
+              "weight": 16.0,
+              "reps": 5.0
+            }
+          ]
+        },
+        {
+          "name": "Incline-Bench press",
+          "muscle": "Brust",
+          "day": "push",
+          "sets": [
+            {
+              "weight": 12.0,
+              "reps": 12.0
+            },
+            {
+              "weight": 12.0,
+              "reps": 10.0
+            },
+            {
+              "weight": 12.0,
+              "reps": 8.0
+            }
+          ]
+        },
+        {
+          "name": "Overhead Press",
+          "muscle": "Schulter",
+          "day": "push",
+          "sets": [
+            {
+              "weight": 10.0,
+              "reps": 12.0
+            },
+            {
+              "weight": 10.0,
+              "reps": 10.0
+            },
+            {
+              "weight": 10.0,
+              "reps": 8.0
+            }
+          ]
+        },
+        {
+          "name": "Laterial Rise",
+          "muscle": "Schulter",
+          "day": "push",
+          "sets": [
+            {
+              "weight": 6.0,
+              "reps": 12.0
+            },
+            {
+              "weight": 6.0,
+              "reps": 10.0
+            },
+            {
+              "weight": 6.0,
+              "reps": 8.0
+            }
+          ]
+        },
+        {
+          "name": "Dips Supported",
+          "muscle": null,
+          "day": "push",
+          "sets": [
+            {
+              "weight": 21.0,
+              "reps": 6.0
+            },
+            {
+              "weight": 21.0,
+              "reps": null
+            },
+            {
+              "weight": 21.0,
+              "reps": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "date": "2026-06-11",
+      "exercises": [
+        {
+          "name": "Lat Pull Down",
+          "muscle": "R\u00fccken",
+          "day": "pull",
+          "sets": [
+            {
+              "weight": 35.0,
+              "reps": 14.0
+            },
+            {
+              "weight": 35.0,
+              "reps": 10.0
+            },
+            {
+              "weight": 35.0,
+              "reps": 8.0
+            }
+          ]
+        },
+        {
+          "name": "Chest-Supported Row",
+          "muscle": "R\u00fccken",
+          "day": "pull",
+          "sets": [
+            {
+              "weight": 50.0,
+              "reps": 12.0
+            },
+            {
+              "weight": 50.0,
+              "reps": 10.0
+            },
+            {
+              "weight": 50.0,
+              "reps": 10.0
+            }
+          ]
+        },
+        {
+          "name": "Kabelziehen",
+          "muscle": "Trizeps",
+          "day": "pull",
+          "sets": [
+            {
+              "weight": 20.0,
+              "reps": 15.0
+            },
+            {
+              "weight": 20.0,
+              "reps": 12.0
+            },
+            {
+              "weight": 20.0,
+              "reps": 10.0
+            }
+          ]
+        },
+        {
+          "name": "Bizeps Curl",
+          "muscle": "Bizeps",
+          "day": "pull",
+          "sets": [
+            {
+              "weight": 10.0,
+              "reps": null
+            },
+            {
+              "weight": 10.0,
+              "reps": null
+            },
+            {
+              "weight": 10.0,
+              "reps": null
+            }
+          ]
+        },
+        {
+          "name": "Rucksack",
+          "muscle": "Bauch",
+          "day": "pull",
+          "sets": [
+            {
+              "weight": 40.0,
+              "reps": 12.0
+            },
+            {
+              "weight": 40.0,
+              "reps": 10.0
+            },
+            {
+              "weight": 40.0,
+              "reps": 8.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "date": "2026-07-16",
+      "exercises": [
+        {
+          "name": "Benchpress",
+          "muscle": "Brust",
+          "day": "push",
+          "sets": [
+            {
+              "weight": 18.0,
+              "reps": 12.0
+            },
+            {
+              "weight": 18.0,
+              "reps": 10.0
+            },
+            {
+              "weight": 18.0,
+              "reps": 8.0
+            }
+          ]
+        },
+        {
+          "name": "Incline-Bench press",
+          "muscle": "Brust",
+          "day": "push",
+          "sets": [
+            {
+              "weight": 16.0,
+              "reps": 12.0
+            },
+            {
+              "weight": 16.0,
+              "reps": 10.0
+            },
+            {
+              "weight": 16.0,
+              "reps": 8.0
+            }
+          ]
+        },
+        {
+          "name": "Laterial Rise",
+          "muscle": "Schulter",
+          "day": "push",
+          "sets": [
+            {
+              "weight": 10.0,
+              "reps": null
+            },
+            {
+              "weight": 10.0,
+              "reps": null
+            },
+            {
+              "weight": 10.0,
+              "reps": null
+            }
+          ]
+        },
+        {
+          "name": "Dips Supported",
+          "muscle": null,
+          "day": "push",
+          "sets": [
+            {
+              "weight": 14.0,
+              "reps": 12.0
+            },
+            {
+              "weight": 14.0,
+              "reps": 10.0
+            },
+            {
+              "weight": 14.0,
+              "reps": 8.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "date": "2026-07-18",
+      "exercises": [
+        {
+          "name": "Push-Up",
+          "muscle": "R\u00fccken",
+          "day": "push",
+          "sets": [
+            {
+              "weight": null,
+              "reps": 25.0
+            }
+          ]
+        },
+        {
+          "name": "Benchpress",
+          "muscle": "Brust",
+          "day": "push",
+          "sets": [
+            {
+              "weight": 18.0,
+              "reps": 12.0
+            },
+            {
+              "weight": 18.0,
+              "reps": 10.0
+            },
+            {
+              "weight": 18.0,
+              "reps": 8.0
+            }
+          ]
+        },
+        {
+          "name": "Incline-Bench press",
+          "muscle": "Brust",
+          "day": "push",
+          "sets": [
+            {
+              "weight": 16.0,
+              "reps": 12.0
+            },
+            {
+              "weight": 16.0,
+              "reps": 10.0
+            }
+          ]
+        },
+        {
+          "name": "Laterial Rise",
+          "muscle": "Schulter",
+          "day": "push",
+          "sets": [
+            {
+              "weight": 10.0,
+              "reps": 12.0
+            },
+            {
+              "weight": 10.0,
+              "reps": 10.0
+            },
+            {
+              "weight": 10.0,
+              "reps": 8.0
+            }
+          ]
+        },
+        {
+          "name": "Pull Up (Supported",
+          "muscle": "R\u00fccken",
+          "day": "pull",
+          "sets": [
+            {
+              "weight": 21.0,
+              "reps": 10.0
+            },
+            {
+              "weight": 21.0,
+              "reps": 6.0
+            },
+            {
+              "weight": 21.0,
+              "reps": null
+            }
+          ]
+        },
+        {
+          "name": "Lat Pull Down",
+          "muscle": "R\u00fccken",
+          "day": "pull",
+          "sets": [
+            {
+              "weight": 45.0,
+              "reps": 6.0
+            },
+            {
+              "weight": 45.0,
+              "reps": null
+            },
+            {
+              "weight": 45.0,
+              "reps": null
+            }
+          ]
+        },
+        {
+          "name": "Chest-Supported Row",
+          "muscle": "R\u00fccken",
+          "day": "pull",
+          "sets": [
+            {
+              "weight": 50.0,
+              "reps": 12.0
+            },
+            {
+              "weight": 50.0,
+              "reps": 10.0
+            },
+            {
+              "weight": 50.0,
+              "reps": 10.0
+            }
+          ]
+        },
+        {
+          "name": "Kabelziehen",
+          "muscle": "Trizeps",
+          "day": "pull",
+          "sets": [
+            {
+              "weight": 20.0,
+              "reps": null
+            },
+            {
+              "weight": 20.0,
+              "reps": null
+            },
+            {
+              "weight": 20.0,
+              "reps": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "date": "2026-08-01",
+      "exercises": [
+        {
+          "name": "Pull Up (Supported",
+          "muscle": "R\u00fccken",
+          "day": "pull",
+          "sets": [
+            {
+              "weight": 21.0,
+              "reps": null
+            }
+          ]
+        },
+        {
+          "name": "Lat Pull Down",
+          "muscle": "R\u00fccken",
+          "day": "pull",
+          "sets": [
+            {
+              "weight": 45.0,
+              "reps": 12.0
+            },
+            {
+              "weight": 45.0,
+              "reps": 10.0
+            },
+            {
+              "weight": 45.0,
+              "reps": 10.0
+            }
+          ]
+        },
+        {
+          "name": "Chest-Supported Row",
+          "muscle": "R\u00fccken",
+          "day": "pull",
+          "sets": [
+            {
+              "weight": 55.0,
+              "reps": 11.0
+            },
+            {
+              "weight": 55.0,
+              "reps": 10.0
+            },
+            {
+              "weight": 55.0,
+              "reps": 10.0
+            }
+          ]
+        },
+        {
+          "name": "Kabelziehen",
+          "muscle": "Trizeps",
+          "day": "pull",
+          "sets": [
+            {
+              "weight": 20.0,
+              "reps": 12.0
+            },
+            {
+              "weight": 20.0,
+              "reps": 10.0
+            },
+            {
+              "weight": 20.0,
+              "reps": 8.0
+            }
+          ]
+        },
+        {
+          "name": "Bizeps Curl",
+          "muscle": "Bizeps",
+          "day": "pull",
+          "sets": [
+            {
+              "weight": 20.0,
+              "reps": 12.0
+            },
+            {
+              "weight": 20.0,
+              "reps": 10.0
+            },
+            {
+              "weight": 20.0,
+              "reps": 8.0
+            }
+          ]
+        },
+        {
+          "name": "Rucksack",
+          "muscle": "Bauch",
+          "day": "pull",
+          "sets": [
+            {
+              "weight": 45.0,
+              "reps": null
+            },
+            {
+              "weight": 45.0,
+              "reps": null
+            },
+            {
+              "weight": 45.0,
+              "reps": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "date": "2026-08-03",
+      "exercises": [
+        {
+          "name": "Benchpress",
+          "muscle": "Brust",
+          "day": "push",
+          "sets": [
+            {
+              "weight": 16.0,
+              "reps": 12.0
+            },
+            {
+              "weight": 16.0,
+              "reps": 10.0
+            },
+            {
+              "weight": 16.0,
+              "reps": 8.0
+            }
+          ]
+        },
+        {
+          "name": "Arm Curl",
+          "muscle": "Bizeps",
+          "day": "push",
+          "sets": [
+            {
+              "weight": 25.0,
+              "reps": 12.0
+            },
+            {
+              "weight": 25.0,
+              "reps": 12.0
+            },
+            {
+              "weight": 25.0,
+              "reps": 12.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "date": "2026-08-06",
+      "exercises": [
+        {
+          "name": "Rudern",
+          "muscle": null,
+          "day": "push",
+          "sets": [
+            {
+              "value": 10.0
+            }
+          ]
+        },
+        {
+          "name": "Pull Up (Supported",
+          "muscle": "R\u00fccken",
+          "day": "pull",
+          "sets": [
+            {
+              "weight": 21.0,
+              "reps": 12.0
+            },
+            {
+              "weight": 21.0,
+              "reps": 10.0
+            },
+            {
+              "weight": 21.0,
+              "reps": 8.0
+            }
+          ]
+        },
+        {
+          "name": "Lat Pull Down",
+          "muscle": "R\u00fccken",
+          "day": "pull",
+          "sets": [
+            {
+              "weight": 30.0,
+              "reps": 12.0
+            },
+            {
+              "weight": 30.0,
+              "reps": 10.0
+            },
+            {
+              "weight": 30.0,
+              "reps": 10.0
+            }
+          ]
+        },
+        {
+          "name": "Chest-Supported Row",
+          "muscle": "R\u00fccken",
+          "day": "pull",
+          "sets": [
+            {
+              "weight": 30.0,
+              "reps": 16.0
+            },
+            {
+              "weight": 30.0,
+              "reps": 14.0
+            },
+            {
+              "weight": 30.0,
+              "reps": 12.0
+            }
+          ]
+        },
+        {
+          "name": "Kabelziehen",
+          "muscle": "Trizeps",
+          "day": "pull",
+          "sets": [
+            {
+              "weight": 12.5,
+              "reps": 14.0
+            },
+            {
+              "weight": 12.5,
+              "reps": 10.0
+            },
+            {
+              "weight": 12.5,
+              "reps": 8.0
+            }
+          ]
+        },
+        {
+          "name": "Bizeps Curl",
+          "muscle": "Bizeps",
+          "day": "pull",
+          "sets": [
+            {
+              "weight": 7.0,
+              "reps": 12.0
+            },
+            {
+              "weight": 7.0,
+              "reps": 10.0
+            },
+            {
+              "weight": 7.0,
+              "reps": 8.0
+            }
+          ]
+        },
+        {
+          "name": "Plank",
+          "muscle": null,
+          "day": "pull",
+          "sets": [
+            {
+              "value": 35.0
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "bodyweight": [
+    {
+      "date": "2026-04-30",
+      "kg": 65.0
+    }
+  ],
+  "plan": {
+    "push": [
+      {
+        "name": "Rudern",
+        "muscle": null,
+        "kind": "warmup",
+        "target_sets": 1,
+        "last_weight": null,
+        "last_reps": null,
+        "unit": "min"
+      },
+      {
+        "name": "Push-Up",
+        "muscle": "Brust",
+        "kind": "reps",
+        "target_sets": 3,
+        "last_weight": null,
+        "last_reps": 25.0,
+        "unit": "reps"
+      },
+      {
+        "name": "Benchpress",
+        "muscle": "Brust",
+        "kind": "weight",
+        "target_sets": 3,
+        "last_weight": 16.0,
+        "last_reps": 8.0,
+        "unit": "kg"
+      },
+      {
+        "name": "Incline-Bench press",
+        "muscle": "Brust",
+        "kind": "weight",
+        "target_sets": 3,
+        "last_weight": 16.0,
+        "last_reps": 10.0,
+        "unit": "kg"
+      },
+      {
+        "name": "Overhead Press",
+        "muscle": "Schulter",
+        "kind": "weight",
+        "target_sets": 3,
+        "last_weight": 10.0,
+        "last_reps": 8.0,
+        "unit": "kg"
+      },
+      {
+        "name": "Laterial Rise",
+        "muscle": "Schulter",
+        "kind": "weight",
+        "target_sets": 3,
+        "last_weight": 10.0,
+        "last_reps": 8.0,
+        "unit": "kg"
+      },
+      {
+        "name": "Dips Supported",
+        "muscle": "Trizeps",
+        "kind": "weight",
+        "target_sets": 3,
+        "last_weight": 14.0,
+        "last_reps": 8.0,
+        "unit": "kg"
+      },
+      {
+        "name": "Arm Curl",
+        "muscle": "Bizeps",
+        "kind": "weight",
+        "target_sets": 3,
+        "last_weight": 25.0,
+        "last_reps": 12.0,
+        "unit": "kg"
+      }
+    ],
+    "pull": [
+      {
+        "name": "Pull Up (Supported",
+        "muscle": "R\u00fccken",
+        "kind": "weight",
+        "target_sets": 3,
+        "last_weight": 21.0,
+        "last_reps": 8.0,
+        "unit": "kg"
+      },
+      {
+        "name": "Lat Pull Down",
+        "muscle": "R\u00fccken",
+        "kind": "weight",
+        "target_sets": 3,
+        "last_weight": 30.0,
+        "last_reps": 10.0,
+        "unit": "kg"
+      },
+      {
+        "name": "Chest-Supported Row",
+        "muscle": "R\u00fccken",
+        "kind": "weight",
+        "target_sets": 3,
+        "last_weight": 30.0,
+        "last_reps": 12.0,
+        "unit": "kg"
+      },
+      {
+        "name": "Kabelziehen",
+        "muscle": "Trizeps",
+        "kind": "weight",
+        "target_sets": 3,
+        "last_weight": 12.5,
+        "last_reps": 8.0,
+        "unit": "kg"
+      },
+      {
+        "name": "Bizeps Curl",
+        "muscle": "Bizeps",
+        "kind": "weight",
+        "target_sets": 3,
+        "last_weight": 7.0,
+        "last_reps": 8.0,
+        "unit": "kg"
+      },
+      {
+        "name": "Rucksack",
+        "muscle": "Bauch",
+        "kind": "weight",
+        "target_sets": 3,
+        "last_weight": 45.0,
+        "last_reps": null,
+        "unit": "kg"
+      },
+      {
+        "name": "Plank",
+        "muscle": "Bauch",
+        "kind": "time",
+        "target_sets": 1,
+        "last_weight": null,
+        "last_reps": null,
+        "unit": "sec"
+      },
+      {
+        "name": "Leg Raises or situps",
+        "muscle": "Bauch",
+        "kind": "reps",
+        "target_sets": 3,
+        "last_weight": null,
+        "last_reps": null,
+        "unit": "reps"
+      }
+    ]
+  }
+}

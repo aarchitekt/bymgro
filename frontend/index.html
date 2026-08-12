@@ -1,0 +1,1375 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#0a0a0a">
+<title>bymgro</title>
+<link rel="manifest" href="/manifest.json">
+<style>
+  :root {
+    --bg: #ffffff; --ink: #111111; --on-ink: #ffffff; --muted: #8a8a8a;
+    --line: rgba(0,0,0,0.10); --panel: rgba(0,0,0,0.04); --accent: #eb6834;
+    --good: #1baf7a;
+    color-scheme: light;
+  }
+  html[data-theme="dark"] {
+    --bg: #0a0a0a; --ink: #f2f2f2; --on-ink: #0a0a0a; --muted: #9a9a9a;
+    --line: rgba(255,255,255,0.14); --panel: rgba(255,255,255,0.07); --accent: #d95926;
+    --good: #199e70;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; height: 100%; overflow: hidden;
+    background: var(--bg); color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+    transition: background .25s ease, color .25s ease;
+  }
+  svg.ic { width: 1em; height: 1em; vertical-align: -0.15em; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  svg.ic.filled { fill: currentColor; stroke: none; }
+
+  #app { position: fixed; inset: 0; display: flex; flex-direction: column; }
+  .screens { flex: 1; min-height: 0; position: relative; }
+  .screen {
+    position: absolute; inset: 0; display: none; flex-direction: column;
+    overflow-y: auto; -webkit-overflow-scrolling: touch;
+    padding: max(18px, env(safe-area-inset-top)) 18px 18px 18px;
+  }
+  .screen.active { display: flex; }
+  /* Clears the fixed mem-btn icons layered on top of a screen (Update 1.2) */
+  .page-content { flex:1; display:flex; flex-direction:column; min-height:0; padding-top: 46px; }
+  .page-content.scrolly { overflow-y:auto; -webkit-overflow-scrolling:touch; }
+  .screen.anim-in { animation: screenIn .28s cubic-bezier(.2,.8,.2,1); }
+  @keyframes screenIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes popIn { 0% { transform: scale(.6); opacity: 0; } 60% { transform: scale(1.08); opacity: 1;} 100% { transform: scale(1); } }
+  @keyframes pulseSoft { 0%,100% { transform: scale(1); } 50% { transform: scale(1.07); } }
+  @keyframes flicker { 0%,100%{opacity:1} 50%{opacity:.78} }
+  @keyframes floatUp { from { transform: translateY(0); opacity: 1;} to { transform: translateY(-40px); opacity: 0;} }
+  @keyframes checkDraw { from { stroke-dashoffset: 40; } to { stroke-dashoffset: 0; } }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-4px)} 75%{transform:translateX(4px)} }
+
+  h1 { font-size: 15px; letter-spacing: .02em; text-transform: uppercase; color: var(--muted); margin: 0 0 4px; font-weight: 600; }
+  .topbar { display:flex; align-items:center; justify-content:space-between; margin-bottom: 18px; gap: 10px; }
+  .topbar-left { display:flex; align-items:center; gap:10px; }
+  .icon-btn {
+    width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--line);
+    background: var(--panel); color: var(--ink); display:flex; align-items:center; justify-content:center;
+    font-size: 17px; cursor: pointer; flex-shrink:0; transition: transform .12s ease;
+  }
+  .icon-btn:active { transform: scale(.88); }
+  .icon-btn.arrow { width: 34px; height: 34px; font-size: 15px; }
+  .icon-btn.tiny { width: 30px; height: 30px; font-size: 13px; }
+  .icon-btn:disabled { opacity: .3; }
+
+  /* ---------- Update 1.2: Memori-style fixed corner/utility icons ----------
+     Replaces the old 5-tab bottom bar. Each of the app's screens is still a
+     full-page <section>, but navigation between the three main pages
+     (Training in the middle/home, Plan left, Fortschritt right) plus the
+     Timer/Sozial/Einstellungen shortcuts now happens via small fixed icons
+     layered on top, positioned the same way Memori places Reflect (top
+     left) / Compose (top right) / the camera shortcut (top center, small +
+     muted) / Settings (bottom center, small + muted) on its single stage
+     screen. Fixed (not absolute) so they never scroll with a screen's own
+     content, and naturally disappear when their parent .screen is
+     display:none (no extra JS toggling needed). */
+  .mem-btn {
+    position: fixed; z-index: 25; display:flex; align-items:center; justify-content:center;
+    color: var(--ink); cursor: pointer; transition: transform .12s ease; border:none; background:none; padding:0;
+  }
+  .mem-btn:active { transform: scale(.88); }
+  .mem-btn svg { display:block; width: 24px; height: 24px; }
+  .mem-btn.corner { top: max(18px, env(safe-area-inset-top)); width:44px; height:44px; }
+  .mem-btn.corner.left { left: 6px; }
+  .mem-btn.corner.right { right: 6px; }
+  .mem-btn.small { width:34px; height:34px; color: var(--muted); }
+  .mem-btn.small svg { width:18px; height:18px; }
+  .mem-btn.top-center { top: max(18px, env(safe-area-inset-top)); left:50%; transform: translateX(-50%); }
+  .mem-btn.top-center:active { transform: translateX(-50%) scale(.88); }
+  .bottom-pair-wrap { position:fixed; bottom: max(16px, calc(env(safe-area-inset-bottom) + 6px)); left:50%; transform: translateX(-50%); display:flex; gap: 20px; z-index:25; }
+  /* the transform above makes this wrap a containing block for its fixed
+     children -- switch them to static so flexbox actually lays them out
+     side by side (a fixed child with no offsets of its own doesn't
+     reliably respect flex gap across browsers) */
+  .bottom-pair-wrap .mem-btn { position: static; }
+
+  .settings-section { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line); }
+  .settings-hint { font-size: 11px; color: var(--muted); text-align:center; opacity:.75; letter-spacing:.02em; }
+
+  /* ---------- goal chips (Update 1.2) ---------- */
+  .goal-grid { display:grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+  .goal-chip { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 13px 8px; text-align:center; font-size: 12.5px; font-weight:700; cursor:pointer; transition: all .15s ease; color: var(--ink); }
+  .goal-chip.on { background: var(--ink); border-color: var(--ink); color: var(--on-ink); }
+
+  /* ---------- progress: calendar page (Update 1.2) ---------- */
+  .cal-nav-row { display:flex; align-items:center; justify-content:space-between; margin-top: 4px; }
+  .cal-nav-row .cal-month-label { font-size: 15px; font-weight: 800; }
+  .cal-wd-row, .cal-grid { display:grid; grid-template-columns: repeat(7,1fr); gap:5px; }
+  .cal-wd-row { margin-top: 16px; }
+  .cal-wd { font-size:10px; color:var(--muted); text-align:center; text-transform:uppercase; letter-spacing:.03em; }
+  .cal-grid { margin-top: 6px; }
+  .cal-cell { aspect-ratio:1; display:flex; align-items:center; justify-content:center; border-radius:10px; font-size:12.5px; background: var(--panel); }
+  .cal-cell.empty { background: none; }
+  .cal-cell.has-push { background: color-mix(in srgb, var(--accent) 24%, transparent); font-weight:700; }
+  .cal-cell.has-pull { background: color-mix(in srgb, var(--good) 24%, transparent); font-weight:700; }
+  .cal-cell.today { box-shadow: inset 0 0 0 1.5px var(--ink); }
+  .cal-legend { display:flex; gap:16px; justify-content:center; margin-top:16px; font-size:11px; color:var(--muted); }
+  .cal-legend .dot { width:8px;height:8px;border-radius:50%; display:inline-block; margin-right:5px; vertical-align:middle; }
+
+  .btn {
+    display:inline-flex; align-items:center; justify-content:center; gap:8px;
+    background: var(--ink); color: var(--on-ink); border: none; border-radius: 14px;
+    padding: 16px 20px; font-size: 16px; font-weight: 600; font-family: inherit; cursor: pointer; width: 100%;
+    transition: transform .1s ease;
+  }
+  .btn.secondary { background: var(--panel); color: var(--ink); border: 1px solid var(--line); }
+  .btn.ghost { background: none; color: var(--muted); }
+  .btn.small { padding: 10px 14px; font-size: 14px; width: auto; border-radius: 10px; }
+  .btn:active { transform: scale(.97); }
+
+  .day-badge { display:inline-block; padding: 5px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; background: var(--panel); border: 1px solid var(--line); color: var(--ink); }
+
+  .ex-nav-row { display:flex; align-items:center; justify-content:center; gap: 14px; margin: 4px 0 2px; }
+  .dots { display:flex; gap:6px; justify-content:center; flex-wrap: wrap; max-width: 200px; }
+  .dot { width:6px; height:6px; border-radius:50%; background: var(--line); transition: all .2s ease; }
+  .dot.done { background: var(--accent); }
+  .dot.now { background: var(--ink); width:8px; height:8px; }
+
+  .exercise-card { flex: 1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; gap: 8px; padding: 6px 0; }
+  .exercise-muscle { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .05em; opacity: .7; }
+  .exercise-name { font-size: 25px; font-weight: 700; margin: 2px 0; }
+
+  .stepper-row { display:flex; align-items:center; justify-content:center; gap: 16px; margin-top: 18px; }
+  .stepper-btn { width: 50px; height: 50px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel); color: var(--ink); font-size: 22px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition: transform .1s ease; }
+  .stepper-btn:active { transform: scale(.88); }
+  .stepper-value { min-width: 100px; text-align:center; }
+  .stepper-value .num { font-size: 38px; font-weight: 800; line-height: 1; }
+  .stepper-value .unit { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+
+  .set-pills { display:flex; gap: 10px; margin-top: 22px; }
+  .set-pill { width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--line); display:flex; align-items:center; justify-content:center; font-size: 14px; font-weight:700; color: var(--muted); cursor: pointer; background: none; transition: all .15s ease; }
+  .set-pill.done { border-color: var(--accent); background: var(--accent); color: #fff; }
+  .set-pill.pop { animation: popIn .3s cubic-bezier(.3,1.5,.5,1); }
+
+  .quiet-row { position: absolute; bottom: 14px; right: 14px; display:flex; gap:8px; }
+
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 16px; margin-bottom: 12px; }
+  .field { display:flex; flex-direction:column; gap:6px; margin-bottom: 14px; }
+  .field label { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+  .field input, .field select, .field textarea { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px 12px; font-size: 16px; color: var(--ink); font-family: inherit; width: 100%; min-width: 0; }
+  .row2 { display:flex; gap: 10px; }
+  .row2 .field { flex: 1; min-width: 0; }
+
+  .empty-note { color: var(--muted); font-size: 13px; text-align:center; padding: 30px 10px; }
+
+  /* ---------- timer ---------- */
+  #timer-screen { align-items:center; justify-content:flex-start; padding-top: max(24px, env(safe-area-inset-top)); }
+  .timer-wrap { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; width:100%; touch-action: none; }
+  #timer-canvas { touch-action: none; }
+  .timer-readout { font-size: 44px; font-weight: 800; margin-top: 18px; font-variant-numeric: tabular-nums; }
+  .timer-hint { color: var(--muted); font-size: 13px; margin-top: 6px; text-align:center; max-width: 260px; }
+  .timer-actions { display:flex; gap: 12px; margin-top: 22px; }
+
+  /* ---------- plan editor ---------- */
+  .plan-item { display:flex; align-items:center; gap:5px; border-bottom:1px solid var(--line); padding: 10px 0; }
+  .plan-item input[type=text] { flex:1; min-width: 0; background:none; border:none; color:var(--ink); font-size:14px; font-family:inherit; padding: 6px 0; }
+  .plan-item select { flex: 0 0 auto; background: var(--bg); border:1px solid var(--line); border-radius:8px; color:var(--ink); font-size:11px; padding: 5px 2px; max-width: 72px; }
+  .plan-item .mini-btn { flex: 0 0 auto; width:24px; height:24px; border-radius:50%; border:1px solid var(--line); background:var(--panel); color:var(--ink); font-size:12px; cursor:pointer; padding: 0; }
+  .plan-day-title { font-size: 13px; text-transform:uppercase; letter-spacing:.05em; color: var(--muted); margin: 18px 0 6px; }
+
+  .toast { position: fixed; left: 50%; bottom: 90px; transform: translateX(-50%) translateY(10px); background: var(--ink); color: var(--on-ink); padding: 10px 18px; border-radius: 999px; font-size: 13px; opacity: 0; pointer-events: none; transition: opacity .2s ease, transform .2s ease; z-index: 60; display:flex; align-items:center; gap:8px; white-space: nowrap; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ---------- progress swipe carousel ---------- */
+  #progress-screen { padding: 0; overflow: hidden; }
+  .progress-carousel { flex:1; overflow-y: scroll; scroll-snap-type: y mandatory; -webkit-overflow-scrolling: touch; }
+  .progress-page { height: 100%; scroll-snap-align: start; display:flex; flex-direction:column; padding: max(54px, calc(env(safe-area-inset-top) + 46px)) 20px 30px; }
+  .progress-page .ph { display:flex; justify-content:space-between; align-items:flex-start; }
+  .progress-page .ph .name { font-size: 22px; font-weight: 800; }
+  .progress-page .ph .muscle { color: var(--muted); font-size: 12px; text-transform:uppercase; letter-spacing:.05em; }
+  .progress-page .ph .latest { font-size: 26px; font-weight: 800; color: var(--accent); text-align:right; }
+  .progress-page .ph .latest .u { font-size: 13px; color: var(--muted); font-weight: 600; }
+  .progress-chart-wrap { flex:1; display:flex; align-items:center; justify-content:center; min-height: 0; }
+  svg.bigchart { width: 100%; height: 100%; max-height: 320px; }
+  .bc-line { fill:none; stroke: var(--accent); stroke-width:2.5; stroke-linecap:round; stroke-linejoin:round; }
+  .bc-area { fill: var(--accent); opacity: 0.08; }
+  .bc-dot { fill: var(--bg); stroke: var(--accent); stroke-width: 2.5; }
+  .bc-dot.last { fill: var(--accent); }
+  .bc-axis { stroke: var(--line); stroke-width:1; }
+  .bc-xlabel { fill: var(--muted); font-size: 9.5px; font-family: inherit; }
+  .progress-vdots { display:flex; flex-direction:column; gap: 6px; position:absolute; right: 8px; top: 50%; transform: translateY(-50%); }
+  .progress-vdots .vd { width:5px; height:5px; border-radius:50%; background: var(--line); }
+  .progress-vdots .vd.now { background: var(--ink); width:6px; height:16px; border-radius: 3px; }
+  .swipe-hint { text-align:center; color: var(--muted); font-size: 11.5px; margin-top: 10px; opacity: .75; }
+
+  /* ---------- social ---------- */
+  .code-card { background: var(--ink); color: var(--on-ink); border-radius: 18px; padding: 20px; text-align:center; margin-bottom: 14px; }
+  .code-card .lbl { font-size: 11px; text-transform:uppercase; letter-spacing:.08em; opacity:.65; }
+  .code-card .code { font-size: 32px; font-weight: 800; letter-spacing: .1em; margin: 6px 0; font-variant-numeric: tabular-nums; }
+  .add-friend-row { display:flex; gap: 8px; margin-bottom: 16px; }
+  .add-friend-row input { flex:1; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px; font-size: 15px; color: var(--ink); text-transform: uppercase; letter-spacing: .06em; }
+  .friend-row { display:flex; align-items:center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .friend-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--panel); border: 1px solid var(--line); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:15px; flex-shrink:0; }
+  .friend-info { flex:1; min-width:0; }
+  .friend-info .fname { font-weight: 700; font-size: 14.5px; }
+  .friend-info .fmeta { color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .friend-level { text-align:right; font-size: 13px; font-weight: 700; color: var(--accent); }
+
+  /* ---------- level / streak header ---------- */
+  .level-card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 16px; margin-bottom: 14px; }
+  .level-top { display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px; }
+  .level-badge { font-size: 15px; font-weight: 800; }
+  .xp-label { font-size: 11px; color: var(--muted); }
+  .xp-bar-track { height: 8px; background: var(--line); border-radius: 999px; overflow:hidden; }
+  .xp-bar-fill { height: 100%; background: var(--accent); border-radius: 999px; transition: width .5s ease; }
+  .streak-row { display:flex; align-items:center; gap: 8px; margin-top: 12px; font-size: 13px; }
+  .streak-row .flame { font-size: 18px; animation: flicker 1.6s ease-in-out infinite; }
+
+  /* ---------- achievements ---------- */
+  .ach-grid { display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .ach-card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px; text-align:center; opacity: .4; }
+  .ach-card.unlocked { opacity: 1; }
+  .ach-card .ai { font-size: 26px; margin-bottom: 6px; color: var(--accent); }
+  .ach-card .an { font-weight: 700; font-size: 12.5px; margin-bottom: 3px; }
+  .ach-card .ad { font-size: 10.5px; color: var(--muted); line-height: 1.3; }
+
+  /* ---------- achievement unlock modal ---------- */
+  #unlock-modal { position: fixed; inset:0; display:none; align-items:center; justify-content:center; z-index: 80; background: rgba(0,0,0,.55); }
+  #unlock-modal.show { display:flex; }
+  .unlock-box { background: var(--bg); color: var(--ink); border-radius: 22px; padding: 30px 26px; text-align:center; max-width: 280px; animation: popIn .4s cubic-bezier(.3,1.4,.5,1); }
+  .unlock-box .ui { font-size: 46px; color: var(--accent); margin-bottom: 10px; }
+  .unlock-box .ul { font-size: 11px; text-transform:uppercase; letter-spacing:.08em; color: var(--muted); }
+  .unlock-box .un { font-size: 19px; font-weight: 800; margin: 6px 0 4px; }
+  .unlock-box .ud { font-size: 13px; color: var(--muted); margin-bottom: 18px; }
+
+  /* ---------- nutrition ---------- */
+  .macro-ratio { display:flex; justify-content:space-between; align-items:baseline; padding: 10px 0; border-top: 1px solid var(--line); margin-top: 8px; }
+  .macro-ratio .mv { font-size: 20px; font-weight: 800; color: var(--accent); }
+  .supp-row { display:flex; align-items:center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .supp-check { width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--line); flex-shrink:0; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: all .15s ease; }
+  .supp-check.on { background: var(--good); border-color: var(--good); color:#fff; }
+  .supp-row .sname { flex:1; font-size: 14.5px; }
+
+  /* ---------- habits ---------- */
+  .habit-toggle-row { display:flex; gap: 10px; margin-bottom: 16px; }
+  .habit-toggle { flex:1; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 8px; text-align:center; cursor:pointer; transition: all .15s ease; }
+  .habit-toggle .hi { font-size: 22px; margin-bottom: 6px; display:block; color: var(--muted); }
+  .habit-toggle .hl { font-size: 11.5px; color: var(--muted); }
+  .habit-toggle.on { background: var(--ink); border-color: var(--ink); }
+  .habit-toggle.on .hi, .habit-toggle.on .hl { color: var(--on-ink); }
+  .clean-row { display:flex; gap:8px; }
+  .clean-tile { flex:1; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 6px; text-align:center; }
+  .clean-tile .cv { font-size: 20px; font-weight: 800; color: var(--good); }
+  .clean-tile .cl { font-size: 10px; color: var(--muted); text-transform:uppercase; letter-spacing:.04em; margin-top:2px; }
+  .cal-strip { display:flex; gap: 3px; flex-wrap: wrap; margin-top: 14px; }
+  .cal-dot { width: 9px; height: 9px; border-radius: 2px; background: var(--line); }
+  .cal-dot.bad { background: var(--accent); }
+  .cal-dot.clean { background: var(--good); opacity: .55; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="screens">
+
+    <!-- ===================== WORKOUT (main / home, center position) ===================== -->
+    <section id="workout-screen" class="screen active">
+      <!-- Update 1.2: Memori-style fixed icons instead of a topbar + bottom
+           tabbar. Left = Plan/Anpassen (Memori's Reflect corner), right =
+           Fortschritt (Memori's Compose corner), top-center small = Timer
+           (Memori's camera-shortcut spot), bottom-center pair = Sozial +
+           Einstellungen (both open the same settings-screen for now). -->
+      <button class="mem-btn corner left" id="plan-edit-btn" title="Trainingsplan anpassen"></button>
+      <button class="mem-btn top-center small" id="open-timer-btn" title="Timer"></button>
+      <button class="mem-btn corner right" id="open-progress-btn" title="Fortschritt"></button>
+      <div class="bottom-pair-wrap">
+        <button class="mem-btn small" id="open-social-btn" title="Sozial"></button>
+        <button class="mem-btn small" id="open-settings-btn" title="Einstellungen"></button>
+      </div>
+
+      <div class="page-content">
+        <div style="text-align:center;">
+          <span id="workout-date" style="font-size:12px;color:var(--muted)"></span>
+        </div>
+
+        <div id="workout-idle" style="display:flex;flex-direction:column;flex:1;align-items:center;justify-content:center;gap:18px;">
+          <span class="day-badge" id="idle-day-badge">PUSH</span>
+          <div style="font-size:14px;color:var(--muted);text-align:center;max-width:240px;">Heute ist laut deinem Rhythmus dein <b id="idle-day-name">Push</b>-Tag.</div>
+          <button class="btn" id="start-btn" style="max-width:260px">Workout starten</button>
+          <button class="btn ghost small" id="swap-day-btn">Stattdessen anderen Tag wählen</button>
+        </div>
+
+        <div id="workout-active" style="display:none;flex:1;flex-direction:column;min-height:0;position:relative;">
+          <div class="ex-nav-row">
+            <button class="icon-btn arrow" id="prev-ex-btn"></button>
+            <div class="dots" id="ex-dots"></div>
+            <button class="icon-btn arrow" id="next-ex-btn"></button>
+          </div>
+          <div class="exercise-card">
+            <span class="exercise-muscle" id="ex-muscle"></span>
+            <h2 class="exercise-name" id="ex-name">—</h2>
+
+            <div id="weight-stepper" class="stepper-row">
+              <button class="stepper-btn" id="w-minus">−</button>
+              <div class="stepper-value"><div class="num" id="w-val">0</div><div class="unit" id="w-unit">kg</div></div>
+              <button class="stepper-btn" id="w-plus">+</button>
+            </div>
+            <div id="reps-stepper" class="stepper-row" style="margin-top:8px;">
+              <button class="stepper-btn" id="r-minus">−</button>
+              <div class="stepper-value"><div class="num" id="r-val">0</div><div class="unit" id="r-unit">wdh</div></div>
+              <button class="stepper-btn" id="r-plus">+</button>
+            </div>
+
+            <div class="set-pills" id="set-pills"></div>
+          </div>
+
+          <div class="quiet-row">
+            <button class="icon-btn tiny" id="finish-workout-btn" title="Workout abschließen"></button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== TIMER (opened from the top-center icon on Training) ===================== -->
+    <section id="timer-screen" class="screen">
+      <button class="mem-btn corner left" id="timer-back-btn" title="Zurück"></button>
+      <div class="page-content" style="align-items:center;justify-content:flex-start;">
+        <div class="timer-wrap">
+          <canvas id="timer-canvas" width="280" height="280"></canvas>
+          <div class="timer-readout" id="timer-readout">0:00</div>
+          <div class="timer-hint" id="timer-hint">Nach links ziehen, um Zeit hinzuzufügen — eine Umdrehung = 1 Minute. Loslassen startet den Countdown.</div>
+          <div class="timer-actions"><button class="btn secondary small" id="timer-reset-btn">Zurücksetzen</button></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== PROGRESS (swipeable, right position) ===================== -->
+    <section id="progress-screen" class="screen">
+      <button class="mem-btn corner left" id="progress-back-btn" title="Zurück"></button>
+      <div id="progress-carousel" class="progress-carousel"></div>
+    </section>
+
+    <!-- ===================== SETTINGS / SOZIAL (bottom pair, same page for now) ===================== -->
+    <section id="settings-screen" class="screen">
+      <button class="mem-btn corner left" id="settings-back-btn" title="Zurück"></button>
+      <div class="page-content scrolly">
+        <h1>Einstellungen</h1>
+
+        <div class="level-card">
+          <div class="level-top">
+            <span class="level-badge" id="level-badge">Level 1</span>
+            <span class="xp-label" id="xp-label">0 / 60 XP</span>
+          </div>
+          <div class="xp-bar-track"><div class="xp-bar-fill" id="xp-bar-fill" style="width:0%"></div></div>
+          <div class="streak-row"><span class="flame" id="streak-flame-ico"></span><span id="streak-label">Kein aktiver Streak</span></div>
+        </div>
+
+        <div id="settings-social-section">
+          <div class="code-card">
+            <div class="lbl">Dein Freundes-Code</div>
+            <div class="code" id="my-code">——————</div>
+            <div style="font-size:12px;opacity:.7;">Teile ihn, damit Freunde dich hinzufügen können.</div>
+          </div>
+          <div class="add-friend-row">
+            <input type="text" id="add-friend-input" placeholder="CODE EINGEBEN" maxlength="6">
+            <button class="btn small" id="add-friend-btn">+</button>
+          </div>
+          <div id="friends-list"></div>
+        </div>
+
+        <div class="card" style="display:flex;flex-direction:column;gap:8px;margin-top:14px;">
+          <button class="btn secondary" id="open-nutrition-btn" style="justify-content:flex-start;"><span></span> Ernährung &amp; Supplements</button>
+          <button class="btn secondary" id="open-habits-btn" style="justify-content:flex-start;"><span></span> Habit-Tracker</button>
+          <button class="btn secondary" id="open-achievements-btn" style="justify-content:flex-start;"><span></span> Erfolge</button>
+        </div>
+
+        <div class="card">
+          <div class="field"><label>Name</label><input type="text" id="p-name"></div>
+          <div class="row2">
+            <div class="field"><label>Größe (cm)</label><input type="number" inputmode="decimal" id="p-height"></div>
+            <div class="field"><label>Gewicht (kg)</label><input type="number" inputmode="decimal" id="p-weight"></div>
+          </div>
+          <div class="row2">
+            <div class="field"><label>Alter</label><input type="number" inputmode="numeric" id="p-age"></div>
+            <div class="field"><label>Geschlecht</label>
+              <select id="p-sex"><option value="">—</option><option value="m">Männlich</option><option value="w">Weiblich</option><option value="d">Divers</option></select>
+            </div>
+          </div>
+          <div class="field">
+            <label>Ziel</label>
+            <div class="goal-grid" id="goal-grid"></div>
+          </div>
+          <button class="btn" id="save-profile-btn">Speichern</button>
+        </div>
+        <div class="card">
+          <div style="font-size:13px;color:var(--muted);margin-bottom:10px;">Darstellung</div>
+          <div class="goal-grid" style="grid-template-columns:1fr 1fr;" id="theme-grid"></div>
+        </div>
+        <div class="settings-section">
+          <div class="settings-hint" id="app-version-line"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== PLAN EDITOR (opened from the top-left icon on Training) ===================== -->
+    <section id="plan-screen" class="screen">
+      <button class="mem-btn corner left" id="plan-close-btn" title="Zurück"></button>
+      <div class="page-content scrolly">
+        <h1>Trainingsplan</h1>
+        <div id="plan-content"></div>
+        <button class="btn" id="plan-save-btn" style="margin-top:14px;">Plan speichern</button>
+      </div>
+    </section>
+
+    <!-- ===================== NUTRITION ===================== -->
+    <section id="nutrition-screen" class="screen">
+      <div class="topbar"><h1>Ernährung</h1><button class="icon-btn" id="nutrition-close-btn"></button></div>
+      <div class="card">
+        <div class="row2">
+          <div class="field"><label>Kalorien (kcal)</label><input type="number" inputmode="numeric" id="n-calories"></div>
+          <div class="field"><label>Protein (g)</label><input type="number" inputmode="numeric" id="n-protein"></div>
+        </div>
+        <div class="macro-ratio"><span style="font-size:13px;color:var(--muted)">Protein pro kg Körpergewicht</span><span class="mv" id="n-ratio">—</span></div>
+        <button class="btn" id="save-nutrition-btn" style="margin-top:12px;">Speichern</button>
+      </div>
+      <div class="card">
+        <div style="font-weight:700;font-size:14px;margin-bottom:6px;">Supplements heute</div>
+        <div id="supp-list"></div>
+        <div class="add-friend-row" style="margin-top:12px;margin-bottom:0;">
+          <input type="text" id="new-supp-input" placeholder="Neues Supplement">
+          <button class="btn small" id="add-supp-btn">+</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== HABITS ===================== -->
+    <section id="habits-screen" class="screen">
+      <div class="topbar"><h1>Habit-Tracker</h1><button class="icon-btn" id="habits-close-btn"></button></div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:12px;">Heute:</div>
+      <div class="habit-toggle-row">
+        <div class="habit-toggle" id="h-alcohol"><span class="hi"></span><span class="hl">Alkohol</span></div>
+        <div class="habit-toggle" id="h-smoke"><span class="hi"></span><span class="hl">Rauchen</span></div>
+        <div class="habit-toggle" id="h-drugs"><span class="hi"></span><span class="hl">Drogen</span></div>
+      </div>
+      <div class="clean-row">
+        <div class="clean-tile"><div class="cv" id="c-combined">0</div><div class="cl">Clean-Tage</div></div>
+        <div class="clean-tile"><div class="cv" id="c-alcohol">0</div><div class="cl">Ohne Alkohol</div></div>
+        <div class="clean-tile"><div class="cv" id="c-smoke">0</div><div class="cl">Ohne Rauchen</div></div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-top:18px;">Letzte 30 Tage</div>
+      <div class="cal-strip" id="cal-strip"></div>
+    </section>
+
+    <!-- ===================== ACHIEVEMENTS ===================== -->
+    <section id="achievements-screen" class="screen">
+      <div class="topbar"><h1>Erfolge</h1><button class="icon-btn" id="achievements-close-btn"></button></div>
+      <div class="ach-grid" id="ach-grid"></div>
+    </section>
+
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<div id="unlock-modal">
+  <div class="unlock-box">
+    <div class="ui" id="unlock-icon"></div>
+    <div class="ul">Erfolg freigeschaltet</div>
+    <div class="un" id="unlock-name"></div>
+    <div class="ud" id="unlock-desc"></div>
+    <button class="btn small" id="unlock-close-btn">Nice</button>
+  </div>
+</div>
+
+<script>
+const APP_VERSION = "1.3";
+document.getElementById("app-version-line").textContent = "bymgro v" + APP_VERSION;
+
+/* ================= ICONS (monochrome, currentColor) ================= */
+const ICONS = {
+  dumbbell: '<svg class="ic" viewBox="0 0 24 24"><path d="M4 9v6M2 10v4M20 9v6M22 10v4M7 12h10M6 7v10M18 7v10"/></svg>',
+  timer: '<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 13V9M9 2h6M12 2v2"/></svg>',
+  chart: '<svg class="ic" viewBox="0 0 24 24"><path d="M4 19V9M11 19V4M18 19v-7"/><path d="M2 19h20"/></svg>',
+  users: '<svg class="ic" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="18" cy="9" r="2.6"/><path d="M15.5 14.3c2.6.4 4.5 2.5 4.5 5.2"/></svg>',
+  user: '<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>',
+  pencil: '<svg class="ic" viewBox="0 0 24 24"><path d="M4 20l1-4.2L15.6 5.2a1.5 1.5 0 0 1 2.1 0l1.1 1.1a1.5 1.5 0 0 1 0 2.1L8.2 19 4 20z"/><path d="M14 6.4L17.6 10"/></svg>',
+  close: '<svg class="ic" viewBox="0 0 24 24"><path d="M5 5l14 14M19 5L5 19"/></svg>',
+  chevLeft: '<svg class="ic" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>',
+  chevRight: '<svg class="ic" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>',
+  chevBack: '<svg class="ic" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>',
+  pause: '<svg class="ic" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>',
+  flagCheck: '<svg class="ic" viewBox="0 0 24 24"><path d="M6 3v18"/><path d="M6 4h12l-2.5 3.5L18 11H6"/></svg>',
+  moon: '<svg class="ic" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/></svg>',
+  sun: '<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.5M12 19.5V22M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2 12h2.5M19.5 12H22M4.2 19.8L6 18M18 6l1.8-1.8"/></svg>',
+  apple: '<svg class="ic" viewBox="0 0 24 24"><path d="M12 8.2c-2.2-2-5.8-1.4-7 1.4-1.4 3.3.3 8.7 3 10.9 1 .8 2 .8 3 .3 1-.5 2-.5 3 0 1 .5 2 .5 3-.3 1.9-1.6 3.3-4.8 3.3-7.4 0-3-2.2-5-4.6-4.9-1 0-2 .3-2.7 1"/><path d="M12 8c0-2 1-3.5 2.6-4"/></svg>',
+  calendar: '<svg class="ic" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="16" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>',
+  trophy: '<svg class="ic" viewBox="0 0 24 24"><path d="M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M7 6H4a3 3 0 0 0 3 5M17 6h3a3 3 0 0 1-3 5M10 17h4M12 13v4M8 21h8"/></svg>',
+  star: '<svg class="ic" viewBox="0 0 24 24"><path d="M12 3l2.6 5.7 6.2.6-4.7 4.2 1.4 6.1-5.5-3.3-5.5 3.3 1.4-6.1-4.7-4.2 6.2-.6z"/></svg>',
+  flame: '<svg class="ic" viewBox="0 0 24 24"><path d="M12 2c1 3-3 4-3 8a3 3 0 0 0 6 0c1 1 1.5 2.4 1.5 3.6A5.5 5.5 0 0 1 6 13.6C6 8.6 12 7 12 2z"/></svg>',
+  leaf: '<svg class="ic" viewBox="0 0 24 24"><path d="M20 4C10 4 4 10 4 18c8 0 14-6 14-14z"/><path d="M6 20c4-6 8-9 13-13"/></svg>',
+  plus: '<svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
+  check: '<svg class="ic" viewBox="0 0 24 24"><path d="M4 12l5 5L20 6"/></svg>',
+  wine: '<svg class="ic" viewBox="0 0 24 24"><path d="M8 3h8l-1 7a3 3 0 0 1-6 0L8 3z"/><path d="M12 13v6M9 21h6"/></svg>',
+  cigarette: '<svg class="ic" viewBox="0 0 24 24"><rect x="2" y="10" width="15" height="4" rx="1"/><path d="M13 10v4M20 8c1 1 1 3 0 4M22 7c1.6 1.6 1.6 4.4 0 6"/></svg>',
+  pill: '<svg class="ic" viewBox="0 0 24 24"><rect x="3" y="9" width="18" height="6" rx="3" transform="rotate(-30 12 12)"/><path d="M9 9l6 6"/></svg>',
+  gear: '<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82A1.65 1.65 0 0 0 3 13.09H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
+};
+function ic(name){ return ICONS[name] || ""; }
+document.querySelectorAll("[data-icon]").forEach(el => el.innerHTML = ic(el.dataset.icon));
+
+function setIcon(id, name){ const el = document.getElementById(id); if(el) el.innerHTML = ic(name); }
+setIcon("plan-edit-btn","pencil");
+setIcon("prev-ex-btn","chevLeft");
+setIcon("next-ex-btn","chevRight");
+setIcon("finish-workout-btn","flagCheck");
+setIcon("plan-close-btn","close");
+setIcon("nutrition-close-btn","close");
+setIcon("habits-close-btn","close");
+setIcon("achievements-close-btn","close");
+setIcon("add-friend-btn","plus");
+setIcon("add-supp-btn","plus");
+/* Update 1.2: Memori-style layout icons */
+setIcon("open-timer-btn","timer");
+setIcon("open-progress-btn","chart");
+setIcon("open-social-btn","users");
+setIcon("open-settings-btn","gear");
+setIcon("timer-back-btn","chevBack");
+setIcon("progress-back-btn","chevBack");
+setIcon("settings-back-btn","chevBack");
+document.querySelector("#h-alcohol .hi").innerHTML = ic("wine");
+document.querySelector("#h-smoke .hi").innerHTML = ic("cigarette");
+document.querySelector("#h-drugs .hi").innerHTML = ic("pill");
+document.querySelector("#open-nutrition-btn span").innerHTML = ic("apple");
+document.querySelector("#open-habits-btn span").innerHTML = ic("calendar");
+document.querySelector("#open-achievements-btn span").innerHTML = ic("trophy");
+document.getElementById("streak-flame-ico").innerHTML = ic("flame");
+document.getElementById("unlock-close-btn");
+
+/* ================= utils ================= */
+function $(id){ return document.getElementById(id); }
+function uuid(){
+  if(crypto.randomUUID) return crypto.randomUUID();
+  return "u-" + Date.now() + "-" + Math.random().toString(16).slice(2);
+}
+let USER_ID = localStorage.getItem("bymgro_user_id");
+if(!USER_ID){ USER_ID = uuid(); localStorage.setItem("bymgro_user_id", USER_ID); }
+
+async function api(path, opts){
+  const headers = Object.assign({"Content-Type":"application/json", "X-User-Id": USER_ID}, (opts&&opts.headers)||{});
+  const res = await fetch(path, Object.assign({}, opts||{}, {headers}));
+  if(!res.ok) throw new Error("API " + path + " -> " + res.status);
+  if(res.status === 204) return null;
+  return res.json();
+}
+let toastTimer = null;
+function toast(msg, iconName){
+  const el = $("toast");
+  el.innerHTML = (iconName ? ic(iconName) : "") + "<span>"+msg+"</span>";
+  el.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>el.classList.remove("show"), 1800);
+}
+function fmt1(n){ return (Math.round(n*10)/10).toString(); }
+function fmtDate(iso){
+  const d = new Date(iso + "T00:00:00");
+  return d.toLocaleDateString("de-DE", {day:"2-digit", month:"2-digit"});
+}
+
+/* ================= theme ================= */
+/* Update 1.3: explicit Hell/Dunkel chips instead of a single toggle icon,
+   for the same reason the goal picker uses chips -- a clearer, more
+   discoverable choice than one ambiguous icon-button. */
+const THEMES = [{id:"light", label:"Hell"}, {id:"dark", label:"Dunkel"}];
+function renderThemeGrid(){
+  const wrap = $("theme-grid");
+  if(!wrap) return;
+  const current = document.documentElement.getAttribute("data-theme");
+  wrap.innerHTML = "";
+  THEMES.forEach(t=>{
+    const chip = document.createElement("div");
+    chip.className = "goal-chip" + (current===t.id ? " on" : "");
+    chip.textContent = t.label;
+    chip.addEventListener("click", ()=> applyTheme(t.id));
+    wrap.appendChild(chip);
+  });
+}
+function applyTheme(t){
+  document.documentElement.setAttribute("data-theme", t);
+  localStorage.setItem("bymgro_theme", t);
+  renderThemeGrid();
+}
+applyTheme(localStorage.getItem("bymgro_theme") || "dark");
+
+/* ================= screen nav (Update 1.2: Memori-style icons, no tabbar) ================= */
+function showScreen(id){
+  document.querySelectorAll(".screen").forEach(s=>{
+    const wasActive = s.classList.contains("active");
+    s.classList.toggle("active", s.id===id);
+    if(s.id===id && !wasActive){
+      s.classList.remove("anim-in"); void s.offsetWidth; s.classList.add("anim-in");
+    }
+  });
+  if(id === "progress-screen") renderProgress();
+  if(id === "settings-screen") loadSocial();
+}
+$("open-timer-btn").addEventListener("click", ()=> showScreen("timer-screen"));
+$("timer-back-btn").addEventListener("click", ()=> showScreen("workout-screen"));
+$("open-progress-btn").addEventListener("click", ()=> showScreen("progress-screen"));
+$("progress-back-btn").addEventListener("click", ()=> showScreen("workout-screen"));
+$("settings-back-btn").addEventListener("click", ()=> showScreen("workout-screen"));
+$("open-settings-btn").addEventListener("click", ()=> showScreen("settings-screen"));
+$("open-social-btn").addEventListener("click", ()=>{
+  showScreen("settings-screen");
+  setTimeout(()=> $("settings-social-section").scrollIntoView({behavior:"smooth", block:"start"}), 60);
+});
+
+/* ================= bootstrap ================= */
+async function bootstrap(){
+  try{
+    await api("/api/auth/init", {method:"POST", body: JSON.stringify({})});
+    await Promise.all([initWorkout(), loadProfile(), refreshGamification()]);
+  }catch(e){
+    // Update 1.3: surface startup failures instead of leaving a blank/stuck
+    // screen with no feedback at all.
+    toast("Verbindung zum Server fehlgeschlagen");
+  }
+}
+
+/* ================= WORKOUT ================= */
+const state = { plan: null, nextDayType: "push", session: null, exIndex: 0, loggedSets: {}, weight: 0, reps: 0 };
+const WEIGHT_STEP = 1.25;
+
+function todayLabel(){ return new Date().toLocaleDateString("de-DE", {weekday:"long", day:"numeric", month:"long"}); }
+$("workout-date").textContent = todayLabel();
+
+async function initWorkout(){
+  const [plan, nextInfo] = await Promise.all([api("/api/plan"), api("/api/workout/next")]);
+  state.plan = plan;
+  state.nextDayType = nextInfo.day_type;
+  renderIdle();
+}
+function renderIdle(){
+  $("workout-idle").style.display = "flex";
+  $("workout-active").style.display = "none";
+  $("idle-day-badge").textContent = state.nextDayType.toUpperCase();
+  $("idle-day-name").textContent = state.nextDayType === "push" ? "Push" : "Pull";
+}
+$("swap-day-btn").addEventListener("click", ()=>{
+  state.nextDayType = state.nextDayType === "push" ? "pull" : "push";
+  renderIdle();
+});
+$("start-btn").addEventListener("click", async ()=>{
+  const resp = await api("/api/workout/start", {method:"POST", body: JSON.stringify({day_type: state.nextDayType})});
+  state.session = resp;
+  state.exIndex = 0;
+  state.loggedSets = {};
+  resp.exercises.forEach(ex => state.loggedSets[ex.name] = new Array(ex.target_sets).fill(null));
+  $("workout-idle").style.display = "none";
+  $("workout-active").style.display = "flex";
+  renderExercise();
+});
+
+function currentExercise(){ return state.session.exercises[state.exIndex]; }
+
+function renderExercise(){
+  const ex = currentExercise();
+  $("ex-muscle").textContent = ex.muscle || (ex.kind==="warmup" ? "Aufwärmen" : "");
+  $("ex-name").textContent = ex.name.replace(" (Supported)", "");
+
+  const showWeight = ex.kind === "weight";
+  const showReps = ex.kind !== "weight" || true;
+  $("weight-stepper").style.display = showWeight ? "flex" : "none";
+  $("reps-stepper").style.display = "flex";
+
+  state.weight = ex.last_weight || 0;
+  state.reps = ex.last_reps || (ex.kind==="reps" ? 10 : ex.kind==="time" ? 30 : ex.kind==="warmup" ? 10 : 8);
+
+  $("w-val").textContent = fmt1(state.weight);
+  $("w-unit").textContent = ex.unit;
+  $("r-val").textContent = fmt1(state.reps);
+  $("r-unit").textContent = ex.kind === "time" ? "sek" : (ex.kind === "warmup" ? "min" : "wdh");
+
+  renderSetPills();
+  renderDots();
+  $("prev-ex-btn").disabled = state.exIndex === 0;
+  const isLast = state.exIndex === state.session.exercises.length - 1;
+  setIcon("next-ex-btn", isLast ? "flagCheck" : "chevRight");
+}
+
+function renderDots(){
+  const wrap = $("ex-dots");
+  wrap.innerHTML = "";
+  state.session.exercises.forEach((ex, i)=>{
+    const dot = document.createElement("div");
+    const sets = state.loggedSets[ex.name] || [];
+    const done = sets.length>0 && sets.every(s=>s!==null);
+    dot.className = "dot" + (done ? " done" : "") + (i===state.exIndex ? " now" : "");
+    wrap.appendChild(dot);
+  });
+}
+
+function renderSetPills(){
+  const ex = currentExercise();
+  const wrap = $("set-pills");
+  wrap.innerHTML = "";
+  const sets = state.loggedSets[ex.name];
+  sets.forEach((val, i)=>{
+    const pill = document.createElement("button");
+    pill.className = "set-pill" + (val ? " done" : "");
+    pill.textContent = (i+1);
+    pill.addEventListener("click", ()=> toggleSet(i));
+    wrap.appendChild(pill);
+  });
+}
+
+function toggleSet(setIndex){
+  const ex = currentExercise();
+  const already = state.loggedSets[ex.name][setIndex];
+  const payload = {exercise_name: ex.name, set_index: setIndex, logged: !already};
+  if(ex.kind === "weight"){ payload.weight = state.weight; payload.reps = state.reps; }
+  else if(ex.kind === "reps"){ payload.reps = state.reps; }
+  else if(ex.kind === "time"){ payload.value_text = String(state.reps); payload.reps = state.reps; }
+  else if(ex.kind === "warmup"){ payload.value_text = state.reps + "min"; payload.reps = state.reps; }
+  state.loggedSets[ex.name][setIndex] = already ? null : payload;
+  api(`/api/workout/${state.session.session_id}/set`, {method:"POST", body: JSON.stringify(payload)}).catch(()=>toast("Konnte nicht speichern"));
+  renderSetPills();
+  renderDots();
+  const pills = document.querySelectorAll(".set-pill");
+  if(pills[setIndex]){ pills[setIndex].classList.remove("pop"); void pills[setIndex].offsetWidth; pills[setIndex].classList.add("pop"); }
+  if(!already && navigator.vibrate) navigator.vibrate(15);
+}
+
+$("w-minus").addEventListener("click", ()=>{ state.weight = Math.max(0, state.weight - WEIGHT_STEP); $("w-val").textContent = fmt1(state.weight); });
+$("w-plus").addEventListener("click", ()=>{ state.weight = state.weight + WEIGHT_STEP; $("w-val").textContent = fmt1(state.weight); });
+$("r-minus").addEventListener("click", ()=>{ state.reps = Math.max(0, state.reps - 1); $("r-val").textContent = fmt1(state.reps); });
+$("r-plus").addEventListener("click", ()=>{ state.reps = state.reps + 1; $("r-val").textContent = fmt1(state.reps); });
+
+$("prev-ex-btn").addEventListener("click", ()=>{ if(state.exIndex > 0){ state.exIndex--; renderExercise(); } });
+$("next-ex-btn").addEventListener("click", ()=>{
+  if(state.exIndex < state.session.exercises.length - 1){ state.exIndex++; renderExercise(); }
+  else finishWorkout();
+});
+$("finish-workout-btn").addEventListener("click", finishWorkout);
+
+async function finishWorkout(){
+  const bwStr = prompt("Aktuelles Körpergewicht in kg (optional, Enter zum Überspringen):", "");
+  const bw = bwStr && !isNaN(parseFloat(bwStr)) ? parseFloat(bwStr) : null;
+  const result = await api(`/api/workout/${state.session.session_id}/finish`, {method:"POST", body: JSON.stringify({bodyweight_kg: bw})});
+  toast("Workout gespeichert", "check");
+  state.session = null;
+  await initWorkout();
+  if(result.gamification) handleGamification(result.gamification);
+}
+
+/* ================= PLAN EDITOR ================= */
+let planDraft = null;
+$("plan-edit-btn").addEventListener("click", async ()=>{
+  planDraft = JSON.parse(JSON.stringify(state.plan || await api("/api/plan")));
+  renderPlanEditor();
+  showScreen("plan-screen");
+});
+$("plan-close-btn").addEventListener("click", ()=> showScreen("workout-screen"));
+
+function renderPlanEditor(){
+  const wrap = $("plan-content");
+  wrap.innerHTML = "";
+  ["push","pull"].forEach(day=>{
+    const title = document.createElement("div");
+    title.className = "plan-day-title";
+    title.textContent = day === "push" ? "Push-Tag" : "Pull-Tag";
+    wrap.appendChild(title);
+    (planDraft[day]||[]).forEach((ex, i)=> wrap.appendChild(planItemRow(day, ex, i)));
+    const addBtn = document.createElement("button");
+    addBtn.className = "btn secondary small";
+    addBtn.style.marginTop = "8px";
+    addBtn.textContent = "+ Übung hinzufügen";
+    addBtn.addEventListener("click", ()=>{
+      planDraft[day].push({name:"Neue Übung", muscle:"", kind:"weight", target_sets:3, unit:"kg", last_weight:0, last_reps:0});
+      renderPlanEditor();
+    });
+    wrap.appendChild(addBtn);
+  });
+}
+function planItemRow(day, ex, i){
+  const row = document.createElement("div");
+  row.className = "plan-item";
+  const up = document.createElement("button");
+  up.className = "mini-btn"; up.textContent = "↑";
+  up.addEventListener("click", ()=>{ if(i>0){ const a=planDraft[day]; [a[i-1],a[i]]=[a[i],a[i-1]]; renderPlanEditor(); } });
+  const down = document.createElement("button");
+  down.className = "mini-btn"; down.textContent = "↓";
+  down.addEventListener("click", ()=>{ const a=planDraft[day]; if(i<a.length-1){ [a[i+1],a[i]]=[a[i],a[i+1]]; renderPlanEditor(); } });
+  const nameInput = document.createElement("input");
+  nameInput.type = "text"; nameInput.value = ex.name;
+  nameInput.addEventListener("input", ()=> ex.name = nameInput.value);
+  const kindSelect = document.createElement("select");
+  [["weight","Gewicht"],["reps","Wdh."],["time","Zeit"],["warmup","Dauer"]].forEach(([v,l])=>{
+    const opt = document.createElement("option"); opt.value=v; opt.textContent=l;
+    if(ex.kind===v) opt.selected = true;
+    kindSelect.appendChild(opt);
+  });
+  kindSelect.addEventListener("change", ()=>{
+    ex.kind = kindSelect.value;
+    ex.unit = ex.kind==="weight" ? "kg" : ex.kind==="time" ? "sec" : ex.kind==="warmup" ? "min" : "reps";
+  });
+  const delBtn = document.createElement("button");
+  delBtn.className = "mini-btn"; delBtn.innerHTML = ic("close");
+  delBtn.addEventListener("click", ()=>{ planDraft[day].splice(i,1); renderPlanEditor(); });
+  row.append(up, down, nameInput, kindSelect, delBtn);
+  return row;
+}
+$("plan-save-btn").addEventListener("click", async ()=>{
+  const saved = await api("/api/plan", {method:"PUT", body: JSON.stringify(planDraft)});
+  state.plan = saved;
+  toast("Plan gespeichert", "check");
+  showScreen("workout-screen");
+});
+
+/* ================= PROGRESS (swipe carousel) ================= */
+function buildBigChart(points, xKey, yKey, unit){
+  const w = 320, h = 260, padL = 8, padR = 8, padT = 10, padB = 24;
+  if(points.length === 0) return '<div class="empty-note">Noch keine Daten für diese Übung.</div>';
+  const ys = points.map(p=>p[yKey]);
+  let minY = Math.min(...ys), maxY = Math.max(...ys);
+  if(minY === maxY){ minY -= 1; maxY += 1; }
+  const rangeY = maxY - minY;
+  const stepX = points.length>1 ? (w-padL-padR)/(points.length-1) : 0;
+  const coords = points.map((p,i)=>{
+    const x = padL + i*stepX;
+    const y = padT + (h-padT-padB) - ((p[yKey]-minY)/rangeY)*(h-padT-padB);
+    return [x,y];
+  });
+  const linePath = coords.map((c,i)=> (i===0?"M":"L")+c[0].toFixed(1)+","+c[1].toFixed(1)).join(" ");
+  const areaPath = linePath + ` L${coords[coords.length-1][0].toFixed(1)},${h-padB} L${coords[0][0].toFixed(1)},${h-padB} Z`;
+  const dots = coords.map((c,i)=> `<circle class="bc-dot${i===coords.length-1?' last':''}" cx="${c[0].toFixed(1)}" cy="${c[1].toFixed(1)}" r="${i===coords.length-1?5:3.2}"></circle>`).join("");
+  // x-axis labels: first, middle, last
+  const labelIdx = points.length > 1 ? [0, Math.floor((points.length-1)/2), points.length-1] : [0];
+  const uniqLabelIdx = [...new Set(labelIdx)];
+  const labels = uniqLabelIdx.map(i => `<text class="bc-xlabel" x="${coords[i][0].toFixed(1)}" y="${h-6}" text-anchor="${i===0?'start':i===points.length-1?'end':'middle'}">${fmtDate(points[i][xKey])}</text>`).join("");
+  return `<svg class="bigchart" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet">
+    <line class="bc-axis" x1="${padL}" y1="${h-padB}" x2="${w-padR}" y2="${h-padB}"></line>
+    <path class="bc-area" d="${areaPath}"></path>
+    <path class="bc-line" d="${linePath}"></path>
+    ${dots}${labels}
+  </svg>`;
+}
+
+/* ---------- Update 1.2: calendar page, first in the carousel ---------- */
+let calYear = null, calMonth = null; // calMonth is 0-11
+let historyDaysCache = null; // {iso: "push"|"pull"}, only finished sessions
+async function loadHistoryDays(){
+  if(historyDaysCache) return historyDaysCache;
+  const hist = await api("/api/history?limit=1000");
+  const map = {};
+  hist.forEach(s => { if(s.finished) map[s.date] = s.day_type; });
+  historyDaysCache = map;
+  return map;
+}
+function calendarPageHtml(){
+  return `
+    <div class="ph"><div><div class="name">Trainingskalender</div><div class="muscle">Verlauf</div></div></div>
+    <div class="cal-nav-row">
+      <button class="icon-btn arrow" id="cal-prev"></button>
+      <span class="cal-month-label" id="cal-month-label"></span>
+      <button class="icon-btn arrow" id="cal-next"></button>
+    </div>
+    <div class="cal-wd-row">${["Mo","Di","Mi","Do","Fr","Sa","So"].map(d=>`<div class="cal-wd">${d}</div>`).join("")}</div>
+    <div class="cal-grid" id="cal-grid"></div>
+    <div class="cal-legend">
+      <span><span class="dot" style="background:var(--accent)"></span>Push</span>
+      <span><span class="dot" style="background:var(--good)"></span>Pull</span>
+    </div>
+    <div class="swipe-hint">nach unten wischen für Körpergewicht &amp; Übungen ↓</div>
+  `;
+}
+async function renderCalendarBody(){
+  if(!$("cal-grid")) return;
+  const days = await loadHistoryDays();
+  $("cal-month-label").textContent = new Date(calYear, calMonth, 1).toLocaleDateString("de-DE", {month:"long", year:"numeric"});
+  const first = new Date(calYear, calMonth, 1);
+  const startOffset = (first.getDay() + 6) % 7; // Monday-first grid
+  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+  const todayIso = new Date().toISOString().slice(0,10);
+  const cells = [];
+  for(let i=0;i<startOffset;i++) cells.push('<div class="cal-cell empty"></div>');
+  for(let d=1; d<=daysInMonth; d++){
+    const iso = `${calYear}-${String(calMonth+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+    const dayType = days[iso];
+    const cls = dayType==="push" ? "has-push" : dayType==="pull" ? "has-pull" : "";
+    cells.push(`<div class="cal-cell ${cls}${iso===todayIso?' today':''}">${d}</div>`);
+  }
+  $("cal-grid").innerHTML = cells.join("");
+  setIcon("cal-prev","chevLeft");
+  setIcon("cal-next","chevRight");
+  $("cal-prev").onclick = ()=>{ calMonth--; if(calMonth<0){calMonth=11;calYear--;} renderCalendarBody(); };
+  $("cal-next").onclick = ()=>{ calMonth++; if(calMonth>11){calMonth=0;calYear++;} renderCalendarBody(); };
+}
+
+async function renderProgress(){
+  const carousel = $("progress-carousel");
+  carousel.innerHTML = '<div class="progress-page"><div class="empty-note">Lädt…</div></div>';
+  // Update 1.3: a failed/slow request used to leave "Lädt…" on screen
+  // forever (the reported bug) since nothing ever replaced it -- now any
+  // error shows a clear message with a retry button instead of hanging.
+  let progress;
+  try{
+    progress = await api("/api/progress");
+  }catch(e){
+    carousel.innerHTML = '<div class="progress-page" style="align-items:center;justify-content:center;gap:14px;">'
+      + '<div class="empty-note">Fortschritt konnte nicht geladen werden.</div>'
+      + '<button class="btn secondary small" id="progress-retry-btn">Nochmal versuchen</button></div>';
+    const retryBtn = $("progress-retry-btn");
+    if(retryBtn) retryBtn.addEventListener("click", renderProgress);
+    return;
+  }
+  if(calYear === null){ const now = new Date(); calYear = now.getFullYear(); calMonth = now.getMonth(); }
+
+  const pages = [{ isCalendar: true }];
+  const bw = progress.bodyweight || [];
+  pages.push({ name: "Körpergewicht", muscle: "Verlauf", unit: "kg",
+    latest: bw.length ? bw[bw.length-1].kg : null,
+    html: buildBigChart(bw, "date", "kg") });
+
+  const entries = Object.entries(progress.exercises || {});
+  entries.sort((a,b)=> b[1].length - a[1].length);
+  entries.forEach(([name, points])=>{
+    const latest = points[points.length-1];
+    pages.push({ name: name.replace(" (Supported)","").replace(" (Supported",""), muscle: "Gewicht", unit: "kg",
+      latest: latest.weight, html: buildBigChart(points, "date", "weight") });
+  });
+
+  const repsEntries = Object.entries(progress.reps_exercises || {});
+  repsEntries.forEach(([name, points])=>{
+    const latest = points[points.length-1];
+    pages.push({ name: name.replace(" (Supported)","").replace(" (Supported",""), muscle: "Wiederholungen", unit: "wdh",
+      latest: latest.reps, html: buildBigChart(points, "date", "reps") });
+  });
+
+  carousel.innerHTML = pages.map((p, i) => {
+    if(p.isCalendar) return `<div class="progress-page" data-idx="${i}">${calendarPageHtml()}</div>`;
+    return `
+    <div class="progress-page" data-idx="${i}">
+      <div class="ph">
+        <div><div class="name">${p.name}</div><div class="muscle">${p.muscle}</div></div>
+        <div class="latest">${p.latest !== null && p.latest !== undefined ? fmt1(p.latest) : "—"}<div class="u">${p.unit}</div></div>
+      </div>
+      <div class="progress-chart-wrap">${p.html}</div>
+      ${i === 1 ? '<div class="swipe-hint">nach unten wischen für die nächste Übung ↓</div>' : ''}
+    </div>`;
+  }).join("");
+
+  renderCalendarBody();
+}
+
+/* ================= PROFILE ================= */
+/* Update 1.2: "Ziel" is now a set of selectable goal chips instead of a free
+   text box -- the backend profile.goal column is still a plain TEXT field
+   (no migration needed), we just store one of these ids as its value. An
+   older/unrecognized goal string (or none yet) simply leaves no chip
+   selected, which is a safe no-op, not an error. */
+const GOALS = [
+  {id:"skinny_fat", label:"Skinny Fat weg"},
+  {id:"shredded", label:"Shredded werden"},
+  {id:"bulk", label:"Crazy Bulk"},
+  {id:"condi", label:"Team Condi"},
+];
+let selectedGoal = null;
+function renderGoalGrid(){
+  const wrap = $("goal-grid");
+  wrap.innerHTML = "";
+  GOALS.forEach(g=>{
+    const chip = document.createElement("div");
+    chip.className = "goal-chip" + (selectedGoal===g.id ? " on" : "");
+    chip.textContent = g.label;
+    chip.addEventListener("click", ()=>{
+      selectedGoal = selectedGoal===g.id ? null : g.id;
+      renderGoalGrid();
+    });
+    wrap.appendChild(chip);
+  });
+}
+async function loadProfile(){
+  const p = await api("/api/profile");
+  $("p-name").value = p.display_name || "";
+  $("p-height").value = p.height_cm || "";
+  $("p-weight").value = p.weight_kg || "";
+  $("p-age").value = p.age || "";
+  $("p-sex").value = p.sex || "";
+  selectedGoal = GOALS.some(g=>g.id===p.goal) ? p.goal : null;
+  renderGoalGrid();
+}
+$("save-profile-btn").addEventListener("click", async ()=>{
+  const body = {
+    name: $("p-name").value || null,
+    height_cm: $("p-height").value ? parseFloat($("p-height").value) : null,
+    weight_kg: $("p-weight").value ? parseFloat($("p-weight").value) : null,
+    age: $("p-age").value ? parseInt($("p-age").value) : null,
+    sex: $("p-sex").value || null,
+    goal: selectedGoal,
+  };
+  await api("/api/profile", {method:"PUT", body: JSON.stringify(body)});
+  toast("Profil gespeichert", "check");
+  refreshGamification();
+});
+
+/* ================= GAMIFICATION / LEVEL / STREAK / ACHIEVEMENTS ================= */
+async function refreshGamification(){
+  const g = await api("/api/gamification");
+  $("level-badge").textContent = "Level " + g.level;
+  $("xp-label").textContent = Math.round(g.xp) + " / " + g.xp_next_level + " XP";
+  $("xp-bar-fill").style.width = Math.round(g.progress*100) + "%";
+  if(g.streak.windows > 0){
+    $("streak-label").textContent = g.streak.windows + "x am Stück trainiert (~" + g.streak.days + " Tage)";
+  } else {
+    $("streak-label").textContent = "Kein aktiver Streak — starte heute!";
+  }
+  renderAchievements(g.achievements);
+  if(g.newly_unlocked && g.newly_unlocked.length){
+    handleGamification(g);
+  }
+  return g;
+}
+
+function handleGamification(g){
+  if(!g.newly_unlocked || !g.newly_unlocked.length) return;
+  showUnlockQueue(g.newly_unlocked.slice());
+  refreshGamification();
+}
+
+let unlockQueue = [];
+function showUnlockQueue(list){
+  unlockQueue = unlockQueue.concat(list);
+  if(unlockQueue.length === list.length) showNextUnlock();
+}
+function showNextUnlock(){
+  if(!unlockQueue.length) return;
+  const a = unlockQueue.shift();
+  $("unlock-icon").innerHTML = ic(a.icon || "trophy");
+  $("unlock-name").textContent = a.name;
+  $("unlock-desc").textContent = a.desc;
+  $("unlock-modal").classList.add("show");
+  if(navigator.vibrate) navigator.vibrate([30,40,30]);
+}
+$("unlock-close-btn").addEventListener("click", ()=>{
+  $("unlock-modal").classList.remove("show");
+  setTimeout(showNextUnlock, 250);
+});
+
+function renderAchievements(list){
+  const grid = $("ach-grid");
+  grid.innerHTML = list.map(a => `
+    <div class="ach-card ${a.unlocked ? 'unlocked':''}">
+      <div class="ai">${ic(a.icon)}</div>
+      <div class="an">${a.name}</div>
+      <div class="ad">${a.desc}</div>
+    </div>
+  `).join("");
+}
+$("open-achievements-btn").addEventListener("click", async ()=>{ await refreshGamification(); showScreen("achievements-screen"); });
+$("achievements-close-btn").addEventListener("click", ()=> showScreen("settings-screen"));
+
+/* ================= SOCIAL ================= */
+async function loadSocial(){
+  let profile, friends;
+  try{
+    profile = await api("/api/profile");
+    friends = await api("/api/social/friends");
+  }catch(e){
+    toast("Sozial-Daten konnten nicht geladen werden");
+    return;
+  }
+  $("my-code").textContent = profile.code || "——————";
+  const wrap = $("friends-list");
+  if(!friends.length){
+    wrap.innerHTML = '<div class="empty-note">Noch keine Freunde. Teile deinen Code oder gib einen ein.</div>';
+    return;
+  }
+  wrap.innerHTML = friends.map(f => `
+    <div class="friend-row">
+      <div class="friend-avatar">${(f.display_name||"?").slice(0,1).toUpperCase()}</div>
+      <div class="friend-info">
+        <div class="fname">${f.display_name || f.code}</div>
+        <div class="fmeta">${f.streak_days>0 ? f.streak_days+' Tage Streak' : 'kein Streak'} ${f.last_workout ? '· zuletzt '+fmtDate(f.last_workout) : ''}</div>
+      </div>
+      <div class="friend-level">Lvl ${f.level}</div>
+    </div>
+  `).join("");
+}
+$("add-friend-btn").addEventListener("click", async ()=>{
+  const code = $("add-friend-input").value.trim();
+  if(!code) return;
+  try{
+    const friend = await api("/api/social/friends", {method:"POST", body: JSON.stringify({code})});
+    toast("„" + (friend.display_name||friend.code) + "“ hinzugefügt", "check");
+    $("add-friend-input").value = "";
+    loadSocial();
+    refreshGamification();
+  }catch(e){
+    toast("Code nicht gefunden");
+    const input = $("add-friend-input");
+    input.style.animation = "none"; void input.offsetWidth; input.style.animation = "shake .3s ease";
+  }
+});
+
+/* ================= NUTRITION ================= */
+$("open-nutrition-btn").addEventListener("click", async ()=>{ await loadNutrition(); showScreen("nutrition-screen"); });
+$("nutrition-close-btn").addEventListener("click", ()=> showScreen("settings-screen"));
+
+async function loadNutrition(){
+  const [n, profile] = await Promise.all([api("/api/nutrition"), api("/api/profile")]);
+  $("n-calories").value = n.calories || "";
+  $("n-protein").value = n.protein_g || "";
+  updateRatio(profile.weight_kg);
+  renderSupplements(n.supplements);
+}
+function updateRatio(weightKg){
+  const protein = parseFloat($("n-protein").value);
+  if(weightKg && protein){
+    $("n-ratio").textContent = (protein/weightKg).toFixed(1) + " g/kg";
+  } else {
+    $("n-ratio").textContent = "—";
+  }
+}
+$("n-protein").addEventListener("input", async ()=>{
+  const p = await api("/api/profile");
+  updateRatio(p.weight_kg);
+});
+$("save-nutrition-btn").addEventListener("click", async ()=>{
+  await api("/api/nutrition", {method:"PUT", body: JSON.stringify({
+    calories: $("n-calories").value ? parseFloat($("n-calories").value) : null,
+    protein_g: $("n-protein").value ? parseFloat($("n-protein").value) : null,
+  })});
+  toast("Ernährung gespeichert", "check");
+  refreshGamification();
+});
+function renderSupplements(list){
+  const wrap = $("supp-list");
+  if(!list.length){ wrap.innerHTML = '<div class="empty-note" style="padding:14px 0;">Noch keine Supplements angelegt.</div>'; return; }
+  wrap.innerHTML = "";
+  list.forEach(s=>{
+    const row = document.createElement("div");
+    row.className = "supp-row";
+    const check = document.createElement("div");
+    check.className = "supp-check" + (s.taken ? " on" : "");
+    check.innerHTML = s.taken ? ic("check") : "";
+    check.addEventListener("click", async ()=>{
+      const nowOn = !check.classList.contains("on");
+      check.classList.toggle("on", nowOn);
+      check.innerHTML = nowOn ? ic("check") : "";
+      await api(`/api/supplements/${s.id}/toggle`, {method:"POST", body: JSON.stringify({taken: nowOn})});
+    });
+    const name = document.createElement("div");
+    name.className = "sname"; name.textContent = s.name;
+    const del = document.createElement("button");
+    del.className = "mini-btn"; del.innerHTML = ic("close");
+    del.addEventListener("click", async ()=>{ await api(`/api/supplements/${s.id}`, {method:"DELETE"}); loadNutrition(); });
+    row.append(check, name, del);
+    wrap.appendChild(row);
+  });
+}
+$("add-supp-btn").addEventListener("click", async ()=>{
+  const input = $("new-supp-input");
+  const name = input.value.trim();
+  if(!name) return;
+  await api("/api/supplements", {method:"POST", body: JSON.stringify({name})});
+  input.value = "";
+  loadNutrition();
+});
+
+/* ================= HABITS ================= */
+$("open-habits-btn").addEventListener("click", async ()=>{ await loadHabits(); showScreen("habits-screen"); });
+$("habits-close-btn").addEventListener("click", ()=> showScreen("settings-screen"));
+
+let habitState = {alcohol:false, smoke:false, drugs:false};
+async function loadHabits(){
+  const [h, streaks, history] = await Promise.all([api("/api/habits"), api("/api/habits/streaks"), api("/api/habits/history?limit_days=30")]);
+  habitState = {alcohol:h.alcohol, smoke:h.smoke, drugs:h.drugs};
+  renderHabitToggles();
+  $("c-combined").textContent = streaks.combined;
+  $("c-alcohol").textContent = streaks.alcohol;
+  $("c-smoke").textContent = streaks.smoke;
+  renderCalStrip(history);
+}
+function renderHabitToggles(){
+  ["alcohol","smoke","drugs"].forEach(f=>{
+    $("h-"+f).classList.toggle("on", habitState[f]);
+  });
+}
+["alcohol","smoke","drugs"].forEach(f=>{
+  $("h-"+f).addEventListener("click", async ()=>{
+    habitState[f] = !habitState[f];
+    renderHabitToggles();
+    await api("/api/habits", {method:"PUT", body: JSON.stringify(habitState)});
+    const streaks = await api("/api/habits/streaks");
+    $("c-combined").textContent = streaks.combined;
+    $("c-alcohol").textContent = streaks.alcohol;
+    $("c-smoke").textContent = streaks.smoke;
+    refreshGamification();
+  });
+});
+function renderCalStrip(history){
+  const wrap = $("cal-strip");
+  const byDate = {};
+  history.forEach(h => byDate[h.date] = h);
+  const days = [];
+  for(let i=29;i>=0;i--){
+    const d = new Date(); d.setDate(d.getDate()-i);
+    const iso = d.toISOString().slice(0,10);
+    days.push(byDate[iso] || null);
+  }
+  wrap.innerHTML = days.map(h=>{
+    const bad = h && (h.alcohol||h.smoke||h.drugs);
+    return `<div class="cal-dot ${bad?'bad':'clean'}"></div>`;
+  }).join("");
+}
+
+/* ================= TIMER (wind-up egg timer) ================= */
+(function(){
+  const canvas = $("timer-canvas");
+  const ctx = canvas.getContext("2d");
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const CSS_SIZE = 280;
+  canvas.width = CSS_SIZE * dpr; canvas.height = CSS_SIZE * dpr;
+  canvas.style.width = CSS_SIZE + "px"; canvas.style.height = CSS_SIZE + "px";
+  ctx.scale(dpr, dpr);
+  const cx = CSS_SIZE/2, cy = CSS_SIZE/2, R = CSS_SIZE/2 - 14;
+
+  let totalSeconds = 0, dragging = false, lastX = 0, accumDeg = 0;
+  let running = false, remainingSeconds = 0, runStartTs = 0, runDurationSeconds = 0, rafId = null;
+  let windPhiAtRelease = 0, sweepTotalAtRelease = 0;
+  // Update 1.3: winding by tracking rotation angle around the center made
+  // "which way is winding" depend on *where on the dial* you first touched
+  // (dragging left near the top vs. near the bottom are opposite rotations
+  // -- confirmed wrong both times it was tried). A plain horizontal drag is
+  // unambiguous: left always adds time, right always removes it, no matter
+  // where you touch. DEG_PER_PX keeps the same feel as before -- dragging
+  // all the way across the dial's diameter is about one full rotation.
+  const DEG_PER_PX = 180 / (Math.PI * R);
+  function normDeg(d){ let x = d % 360; if(x<0) x+=360; return x; }
+
+  function draw(handDeg){
+    ctx.clearRect(0,0,CSS_SIZE,CSS_SIZE);
+    const style = getComputedStyle(document.documentElement);
+    const ink = style.getPropertyValue("--ink").trim() || "#111";
+    const muted = style.getPropertyValue("--muted").trim() || "#999";
+
+    // Update 1.2: simplified per feedback -- no outer circle, just the tick
+    // marks themselves floating on the page background.
+    for(let i=0;i<60;i++){
+      const a = (i/60) * Math.PI*2 - Math.PI/2;
+      const major = i % 5 === 0;
+      const rInner = R - (major ? 14 : 7);
+      const x1 = cx + Math.cos(a)*R, y1 = cy + Math.sin(a)*R;
+      const x2 = cx + Math.cos(a)*rInner, y2 = cy + Math.sin(a)*rInner;
+      ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2);
+      ctx.strokeStyle = major ? ink : muted;
+      ctx.globalAlpha = major ? 0.9 : 0.45;
+      ctx.lineWidth = major ? 2 : 1;
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+
+    // Update 1.2: hand is now a plain white needle that tapers to a sharp
+    // point at the tip, no center dot -- a thin --ink outline keeps it
+    // visible against a light background too, same shape either theme.
+    const handA = (handDeg/360) * Math.PI*2 - Math.PI/2;
+    const handLen = R - 20;
+    const perp = handA + Math.PI/2;
+    const baseHW = 5;
+    const tipX = cx + Math.cos(handA)*handLen, tipY = cy + Math.sin(handA)*handLen;
+    const b1x = cx + Math.cos(perp)*baseHW, b1y = cy + Math.sin(perp)*baseHW;
+    const b2x = cx - Math.cos(perp)*baseHW, b2y = cy - Math.sin(perp)*baseHW;
+    ctx.beginPath();
+    ctx.moveTo(b1x, b1y); ctx.lineTo(tipX, tipY); ctx.lineTo(b2x, b2y); ctx.closePath();
+    ctx.fillStyle = "#ffffff"; ctx.fill();
+    ctx.strokeStyle = ink; ctx.globalAlpha = 0.5; ctx.lineWidth = 1; ctx.stroke(); ctx.globalAlpha = 1;
+  }
+
+  function secondsToLabel(s){ s = Math.max(0, Math.round(s)); return Math.floor(s/60) + ":" + String(s%60).padStart(2,"0"); }
+  function updateReadout(s){ $("timer-readout").textContent = secondsToLabel(s); }
+
+  function resetAll(){
+    running = false; if(rafId) cancelAnimationFrame(rafId);
+    accumDeg = 0; totalSeconds = 0; remainingSeconds = 0;
+    updateReadout(0); draw(0);
+    $("timer-hint").textContent = "Nach links ziehen, um Zeit hinzuzufügen — eine Umdrehung = 1 Minute. Loslassen startet den Countdown.";
+  }
+  function pointerPos(e){
+    const rect = canvas.getBoundingClientRect();
+    const t = e.touches ? e.touches[0] : e;
+    return {x: t.clientX - rect.left, y: t.clientY - rect.top};
+  }
+  function onDown(e){
+    if(running) resetAll();
+    dragging = true;
+    const p = pointerPos(e);
+    lastX = p.x;
+    $("timer-hint").textContent = "Loslassen startet den Countdown.";
+    e.preventDefault();
+  }
+  function onMove(e){
+    if(!dragging) return;
+    const p = pointerPos(e);
+    const dx = p.x - lastX;
+    // Update 1.3: dragging left (dx negative) always winds up more time,
+    // regardless of where on the dial the drag started -- see DEG_PER_PX
+    // above for why this replaced the old angle-tracking approach.
+    accumDeg -= dx * DEG_PER_PX;
+    accumDeg = Math.max(0, Math.min(accumDeg, 360*30));
+    lastX = p.x;
+    totalSeconds = (accumDeg/360) * 60;
+    updateReadout(totalSeconds);
+    draw(normDeg(accumDeg));
+    e.preventDefault();
+  }
+  function onUp(){
+    if(!dragging) return;
+    dragging = false;
+    if(totalSeconds >= 1) startCountdown(totalSeconds); else resetAll();
+  }
+  function startCountdown(seconds){
+    running = true; runDurationSeconds = seconds; runStartTs = performance.now();
+    // Update 1.3: the countdown now sweeps clockwise ("to the right") back
+    // to 12, the mirror image of how it used to unwind straight backward
+    // along the same path it was wound. windPhiAtRelease is where the hand
+    // is right now (0-360); sweepTotalAtRelease is the clockwise distance
+    // from there to 12, including whole extra laps for multi-minute winds
+    // -- see tick() for how these turn into the per-frame hand angle. This
+    // keeps the hand continuous with wherever winding left it (no visual
+    // jump) while still landing exactly on 12 when the countdown ends.
+    const phi = normDeg(accumDeg);
+    const laps = Math.floor(accumDeg / 360);
+    windPhiAtRelease = phi;
+    sweepTotalAtRelease = (360 - phi) + 360 * laps;
+    $("timer-hint").textContent = "Läuft … zum Abbrechen antippen.";
+    tick();
+  }
+  function tick(){
+    if(!running) return;
+    const elapsed = (performance.now() - runStartTs) / 1000;
+    remainingSeconds = Math.max(0, runDurationSeconds - elapsed);
+    const progress = runDurationSeconds > 0 ? Math.min(1, elapsed / runDurationSeconds) : 1;
+    draw(normDeg(windPhiAtRelease + progress * sweepTotalAtRelease));
+    updateReadout(remainingSeconds);
+    if(remainingSeconds <= 0){
+      running = false; updateReadout(0);
+      $("timer-hint").textContent = "Fertig!";
+      if(navigator.vibrate) navigator.vibrate([200,80,200,80,200]);
+      draw(0);
+      return;
+    }
+    rafId = requestAnimationFrame(tick);
+  }
+  canvas.addEventListener("mousedown", onDown);
+  window.addEventListener("mousemove", onMove);
+  window.addEventListener("mouseup", onUp);
+  canvas.addEventListener("touchstart", onDown, {passive:false});
+  canvas.addEventListener("touchmove", onMove, {passive:false});
+  canvas.addEventListener("touchend", onUp);
+  $("timer-reset-btn").addEventListener("click", resetAll);
+  resetAll();
+})();
+
+/* ================= boot ================= */
+bootstrap();
+</script>
+</body>
+</html>
