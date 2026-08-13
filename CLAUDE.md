@@ -45,10 +45,33 @@ The flow once the user is ready to go live:
 ## Versioning rule
 
 Every future update should bump `APP_VERSION` in `frontend/index.html` AND
-`backend/main.py` (currently `"1.3"`) — shown in Einstellungen as a small
-muted "bymgro v1.3" line at the very bottom (`#app-version-line`, styled
+`backend/main.py` (currently `"1.3.2"`) — shown in Einstellungen as a small
+muted "bymgro v1.3.2" line at the very bottom (`#app-version-line`, styled
 like memori-mvp's own version tag) — bump as part of the change, before
 syncing/deploying.
+
+## Deployment status (Update 1.3.2)
+
+The app is live at **https://bymgro-production.up.railway.app** (Railway
+project "bymgro"), confirmed reachable via health check + homepage. Build
+uses a `Dockerfile` (not Railpack — its `mise` builder hit repeated network
+failures fetching Python, version-independent; Dockerfile bypasses that
+entirely). Port is hardcoded to `8080` everywhere (Dockerfile `CMD`,
+`EXPOSE`, and the Railway `startCommand` override) because Railway does not
+reliably shell-expand `$PORT` in either of those.
+
+**Known unresolved gap: no working persistent volume.** A Railway volume
+was created and mounted at `/data`, but the app couldn't open a database
+file there (`sqlite3.OperationalError: unable to open database file`) —
+root cause not confirmed (mount not actually attached/writable, most
+likely). Stopgapped by pointing `BYMGRO_DB_PATH` at the container's own
+ephemeral filesystem (`/app/bymgro.db`) so the app runs, but **this means
+any data written on Main is lost on the next deploy** until the volume is
+properly fixed. Do not treat Main as durable storage until this is
+resolved. Separately: Main's database is entirely its own fresh instance —
+it seeds from `backend/seed_data.json` only once, the first time anyone's
+"first user" slot on that specific database gets claimed; it does not share
+data with the Mac's local Dev database.
 
 ## Data model / where things live
 
@@ -262,6 +285,23 @@ the one `accumDeg -=` line in `onMove()`; sweep direction is the sign in
 two again — they're independent bugs that happen to both show up as "the
 timer runs backwards."
 
+**Superseded by Update 1.3.2 — this whole clockwise-sweep design is gone.**
+The Update 1.3 sweep-to-12 logic above was itself judged "still wrong" by
+the user, with a more precise spec this time: think of a real wind-up
+kitchen timer — drag from 12 toward 3 (rightward, at the top of the dial)
+to wind up time; the countdown then just unwinds straight back along the
+*same path* to 0/12, no separate sweep-direction math needed. Implemented
+as: `onMove()` now does `accumDeg += dx * DEG_PER_PX` (right winds, was
+`-=`/left); `startCountdown()` just captures `windTotalAtRelease =
+accumDeg`; `tick()` draws `normDeg(windTotalAtRelease * (1 - progress))` —
+a plain linear interpolation from the wound angle down to 0.
+`windPhiAtRelease`/`sweepTotalAtRelease` are gone. Verified via Playwright:
+sampled hand angle strictly decreases frame over frame during countdown
+(0:09 → 0:07 moved the hand counterclockwise back toward 12), confirmed via
+screenshot. The hand also got a white `ctx.shadowBlur` glow in `draw()` to
+match the chart-line glow treatment (Update 1.3.2 ask: "genau so den
+Zeiger der Uhr").
+
 ## Layout: Memori-style fixed icons instead of a bottom tabbar (Update 1.2)
 
 The old 5-tab `nav#tabbar` is gone. Navigation now mirrors memori-mvp's own
@@ -391,6 +431,70 @@ an explicit error+retry instead of hanging silently — check server logs for
 what the actual fetch failure was, since the symptom is now handled but the
 underlying trigger (suspected: transient failure during a server restart)
 is still not 100% confirmed.
+
+## Stats page: Progress/Kalender/Erfolge switch (Update 1.3.2)
+
+Mirrors memori-mvp's Reflect-page switch between helix-globe and timeline
+view. `#progress-screen` (still that id internally, renamed "Stats" in the
+UI) now has a `.seg-switch` (`#stats-switch`, 3 `.seg-btn`s) toggling three
+`.stats-panel` containers via `setStatsTab(tab)`: `progress` (the existing
+swipeable `#progress-carousel`), `calendar` (was previously the first page
+*inside* the carousel — now its own tab, `renderCalendarBody()` unchanged,
+just relocated), and `achievements` (was previously a fully separate
+top-level `#achievements-screen` — that section is now deleted; `open-
+achievements-btn` calls `showScreen("progress-screen")` +
+`setStatsTab("achievements")` instead). `renderProgress()` no longer
+prepends a calendar page to the carousel array. The left "Trainingsplan"
+page is renamed to "Edit" (`<h1>` text only, id still `#plan-screen`); the
+Fortschritt page is renamed to "Stats" (new `.stats-header h1`).
+
+## Chart styling: rounded lines + white glow (Update 1.3.2)
+
+`buildBigChart()`'s line used to be straight `M`/`L` polyline segments —
+now runs through `smoothPath()`, a Catmull-Rom-to-cubic-Bezier conversion
+(falls back to the old straight-line join when there are fewer than 3
+points, since a curve needs at least 3 to be meaningful). CSS gives
+`.bc-line`/`.bc-dot` a white stroke/fill plus a layered `drop-shadow` glow;
+`svg.bigchart` needed `overflow: visible` so the glow isn't clipped at the
+viewBox edge. The timer hand got the matching `ctx.shadowBlur` glow (see
+the timer section above). Note: graphs already only ever plot dates a set
+was actually logged on (the backend only writes a row when a set is
+saved) — there was nothing to filter for the "nur Tage an denen trainiert
+wurde" ask, already true by construction.
+
+## Particle burst ("galaxy of pixels") system (Update 1.3.2)
+
+One shared full-screen overlay `<canvas id="burst-canvas">` (`z-index:90`,
+`pointer-events:none`, hidden until used) and one function, `spawnBurst(x,
+y, opts)` (viewport/client coordinates), used everywhere the user asked for
+an animation instead of building bespoke effects per trigger: small glowing
+square "pixels" fly outward from a point (ease-out) for the first 55% of
+their life, then contract back to the origin for the remaining 45% — the
+"explosion then implosion / warp" look asked for, deliberately reminiscent
+of an Apple-Watch-pairing point cloud / Photoshop glow-noise. `opts`:
+`count`, `radius`, `life` (ms), `color` (rgb triplet string), `big` (bigger
+defaults). Wired into: timer completion (burst centered on the timer
+canvas), every 3rd completed set across the workout (mid-size burst,
+screen-centered; small ones fire directly on the tapped set-pill every
+time), workout finish (`{big:true}`, the "richtig fette Explosion"),
+achievement unlocks (mini burst centered on the unlock-modal icon), and the
+lockscreen swipe-up dissolve (several staggered bursts + one big central
+one). If a new trigger point needs the effect, just call `spawnBurst` at
+the right screen coordinates rather than writing a new animation.
+
+## Lockscreen (Update 1.3.2)
+
+`#lock-screen` (memori-style: logo + "nach oben wischen" + an animated
+up-chevron hint) is shown full-screen on load, `z-index:100`, above
+everything including the burst canvas. A small IIFE near the bottom of the
+script tracks vertical touch/mouse drag; past a `-70px` swipe-up threshold
+it fires several staggered `spawnBurst()` calls across the screen plus one
+big central one, fades/translates the lockscreen out over 0.6s, then adds
+`.hidden` to remove it from layout. `bootstrap()` still runs in the
+background regardless of lock state (data is ready by the time the user
+swipes). Note this is purely a UI gate, not authentication — identity is
+still the `localStorage` UUID described under "Identity / multi-user"
+above; the lockscreen doesn't add or replace that.
 
 ## Known gaps / next steps (not yet built)
 

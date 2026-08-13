@@ -11,7 +11,7 @@ from pydantic import BaseModel
 
 from backend import storage
 
-APP_VERSION = "1.3"
+APP_VERSION = "1.3.2"
 
 storage.init_db()
 

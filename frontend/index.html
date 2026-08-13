@@ -102,6 +102,18 @@
   .goal-chip { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 13px 8px; text-align:center; font-size: 12.5px; font-weight:700; cursor:pointer; transition: all .15s ease; color: var(--ink); }
   .goal-chip.on { background: var(--ink); border-color: var(--ink); color: var(--on-ink); }
 
+  /* ---------- Stats page: Progress/Kalender/Erfolge switch (Update 1.3.2) ----------
+     Mirrors memori's Reflect-page switch between helix globe and timeline. */
+  .stats-header { padding-top: max(64px, calc(env(safe-area-inset-top) + 46px)); padding-bottom: 4px; flex-shrink:0; }
+  .stats-header h1 { margin: 0 0 12px; }
+  .seg-switch { display:flex; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 3px; gap: 3px; }
+  .seg-btn { flex:1; border:none; background:none; color: var(--muted); font-family:inherit; font-size: 12.5px; font-weight: 700; padding: 9px 4px; border-radius: 9px; cursor:pointer; transition: all .18s ease; }
+  .seg-btn.on { background: var(--ink); color: var(--on-ink); }
+  .stats-body { flex:1; min-height:0; display:flex; flex-direction:column; }
+  .stats-panel { flex:1; min-height:0; display:none; flex-direction:column; }
+  .stats-panel.on { display:flex; }
+  .stats-panel.scrolly { overflow-y:auto; -webkit-overflow-scrolling:touch; }
+
   /* ---------- progress: calendar page (Update 1.2) ---------- */
   .cal-nav-row { display:flex; align-items:center; justify-content:space-between; margin-top: 4px; }
   .cal-nav-row .cal-month-label { font-size: 15px; font-weight: 800; }
@@ -184,18 +196,23 @@
   /* ---------- progress swipe carousel ---------- */
   #progress-screen { padding: 0; overflow: hidden; }
   .progress-carousel { flex:1; overflow-y: scroll; scroll-snap-type: y mandatory; -webkit-overflow-scrolling: touch; }
-  .progress-page { height: 100%; scroll-snap-align: start; display:flex; flex-direction:column; padding: max(54px, calc(env(safe-area-inset-top) + 46px)) 20px 30px; }
+  .progress-page { height: 100%; scroll-snap-align: start; display:flex; flex-direction:column; padding: 10px 0 30px; }
   .progress-page .ph { display:flex; justify-content:space-between; align-items:flex-start; }
   .progress-page .ph .name { font-size: 22px; font-weight: 800; }
   .progress-page .ph .muscle { color: var(--muted); font-size: 12px; text-transform:uppercase; letter-spacing:.05em; }
   .progress-page .ph .latest { font-size: 26px; font-weight: 800; color: var(--accent); text-align:right; }
   .progress-page .ph .latest .u { font-size: 13px; color: var(--muted); font-weight: 600; }
   .progress-chart-wrap { flex:1; display:flex; align-items:center; justify-content:center; min-height: 0; }
-  svg.bigchart { width: 100%; height: 100%; max-height: 320px; }
-  .bc-line { fill:none; stroke: var(--accent); stroke-width:2.5; stroke-linecap:round; stroke-linejoin:round; }
-  .bc-area { fill: var(--accent); opacity: 0.08; }
-  .bc-dot { fill: var(--bg); stroke: var(--accent); stroke-width: 2.5; }
-  .bc-dot.last { fill: var(--accent); }
+  svg.bigchart { width: 100%; height: 100%; max-height: 320px; overflow: visible; }
+  /* ---------- Update 1.3.2: white, rounded, softly glowing chart line
+     (same treatment as the timer hand) instead of the flat accent-orange
+     line -- layered drop-shadows approximate a soft pixel/noise glow
+     without a full custom SVG noise filter. ---------- */
+  .bc-line { fill:none; stroke: #ffffff; stroke-width:2.75; stroke-linecap:round; stroke-linejoin:round;
+    filter: drop-shadow(0 0 1.5px rgba(255,255,255,.9)) drop-shadow(0 0 6px rgba(255,255,255,.55)) drop-shadow(0 0 14px rgba(255,255,255,.3)); }
+  .bc-area { fill: #ffffff; opacity: 0.07; }
+  .bc-dot { fill: var(--bg); stroke: #ffffff; stroke-width: 2.5; filter: drop-shadow(0 0 4px rgba(255,255,255,.5)); }
+  .bc-dot.last { fill: #ffffff; filter: drop-shadow(0 0 3px rgba(255,255,255,.9)) drop-shadow(0 0 9px rgba(255,255,255,.5)); }
   .bc-axis { stroke: var(--line); stroke-width:1; }
   .bc-xlabel { fill: var(--muted); font-size: 9.5px; font-family: inherit; }
   .progress-vdots { display:flex; flex-direction:column; gap: 6px; position:absolute; right: 8px; top: 50%; transform: translateY(-50%); }
@@ -266,6 +283,32 @@
   .cal-dot { width: 9px; height: 9px; border-radius: 2px; background: var(--line); }
   .cal-dot.bad { background: var(--accent); }
   .cal-dot.clean { background: var(--good); opacity: .55; }
+
+  /* ---------- Update 1.3.2: "training beenden" always-visible finish pill ---------- */
+  .finish-pill { position:absolute; bottom: 14px; right: 14px; display:flex; align-items:center; gap:6px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 999px; color: var(--ink);
+    font-family: inherit; font-size: 12.5px; font-weight: 700; padding: 9px 14px 9px 11px; cursor:pointer; transition: transform .12s ease; }
+  .finish-pill svg { width:16px; height:16px; }
+  .finish-pill:active { transform: scale(.94); }
+
+  /* ---------- Update 1.3.2: full-screen particle burst canvas ----------
+     One shared canvas layered above everything, used for the timer-done
+     burst, every-3rd-set mini burst, workout-finish big burst, achievement
+     unlock burst, and the lockscreen dissolve. See spawnBurst() in the
+     script -- deliberately one reusable system rather than bespoke
+     animations per trigger. */
+  #burst-canvas { position: fixed; inset: 0; z-index: 90; pointer-events: none; display:none; }
+
+  /* ---------- Update 1.3.2: lockscreen (swipe-up entry, memori-style) ---------- */
+  #lock-screen { position: fixed; inset: 0; z-index: 100; background: #05070a; color: #fff;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap: 18px;
+    touch-action: none; transition: opacity .5s ease; }
+  #lock-screen.hidden { display:none; }
+  #lock-screen .lock-logo { font-size: 30px; font-weight: 800; letter-spacing: .02em; filter: drop-shadow(0 0 10px rgba(255,255,255,.55)); }
+  #lock-screen .lock-sub { font-size: 12.5px; color: rgba(255,255,255,.5); letter-spacing: .04em; }
+  #lock-screen .lock-swipe-hint { position:absolute; bottom: max(34px, calc(env(safe-area-inset-bottom) + 24px)); display:flex; flex-direction:column; align-items:center; gap:8px; color: rgba(255,255,255,.55); font-size: 11.5px; letter-spacing:.05em; text-transform:uppercase; }
+  #lock-screen .lock-chev { width: 20px; height: 20px; animation: lockChevUp 1.4s ease-in-out infinite; }
+  @keyframes lockChevUp { 0%,100% { transform: translateY(0); opacity:.4; } 50% { transform: translateY(-6px); opacity:1; } }
 </style>
 </head>
 <body>
@@ -323,9 +366,10 @@
             <div class="set-pills" id="set-pills"></div>
           </div>
 
-          <div class="quiet-row">
-            <button class="icon-btn tiny" id="finish-workout-btn" title="Workout abschließen"></button>
-          </div>
+          <!-- Update 1.3.2: always-visible "Training beenden" pill (was a
+               tiny icon-only button easy to miss) -- present regardless of
+               which exercise is currently shown. -->
+          <button class="finish-pill" id="finish-workout-btn"><span id="finish-pill-icon"></span>Training beenden</button>
         </div>
       </div>
     </section>
@@ -343,10 +387,28 @@
       </div>
     </section>
 
-    <!-- ===================== PROGRESS (swipeable, right position) ===================== -->
-    <section id="progress-screen" class="screen">
+    <!-- ===================== STATS (right position; Progress/Kalender/Erfolge switch, Update 1.3.2) ===================== -->
+    <section id="progress-screen" class="screen" style="padding-left:18px;padding-right:18px;">
       <button class="mem-btn corner left" id="progress-back-btn" title="Zurück"></button>
-      <div id="progress-carousel" class="progress-carousel"></div>
+      <div class="stats-header">
+        <h1>Stats</h1>
+        <div class="seg-switch" id="stats-switch">
+          <button class="seg-btn on" data-tab="progress">Progress</button>
+          <button class="seg-btn" data-tab="calendar">Kalender</button>
+          <button class="seg-btn" data-tab="achievements">Erfolge</button>
+        </div>
+      </div>
+      <div class="stats-body">
+        <div class="stats-panel on" id="stats-panel-progress">
+          <div id="progress-carousel" class="progress-carousel"></div>
+        </div>
+        <div class="stats-panel scrolly" id="stats-panel-calendar" style="padding-top:14px;">
+          <div id="stats-calendar-body"></div>
+        </div>
+        <div class="stats-panel scrolly" id="stats-panel-achievements" style="padding-top:14px;">
+          <div class="ach-grid" id="ach-grid"></div>
+        </div>
+      </div>
     </section>
 
     <!-- ===================== SETTINGS / SOZIAL (bottom pair, same page for now) ===================== -->
@@ -415,7 +477,7 @@
     <section id="plan-screen" class="screen">
       <button class="mem-btn corner left" id="plan-close-btn" title="Zurück"></button>
       <div class="page-content scrolly">
-        <h1>Trainingsplan</h1>
+        <h1>Edit</h1>
         <div id="plan-content"></div>
         <button class="btn" id="plan-save-btn" style="margin-top:14px;">Plan speichern</button>
       </div>
@@ -460,14 +522,21 @@
       <div class="cal-strip" id="cal-strip"></div>
     </section>
 
-    <!-- ===================== ACHIEVEMENTS ===================== -->
-    <section id="achievements-screen" class="screen">
-      <div class="topbar"><h1>Erfolge</h1><button class="icon-btn" id="achievements-close-btn"></button></div>
-      <div class="ach-grid" id="ach-grid"></div>
-    </section>
-
   </div>
 </div>
+<!-- ===================== LOCKSCREEN (Update 1.3.2, memori-style swipe-up entry) ===================== -->
+<div id="lock-screen">
+  <div class="lock-logo">bymgro</div>
+  <div class="lock-sub" id="lock-sub">nach oben wischen</div>
+  <div class="lock-swipe-hint">
+    <svg class="ic lock-chev" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 15l7-7 7 7"/></svg>
+    <span>Hochwischen</span>
+  </div>
+</div>
+<!-- Update 1.3.2: shared full-screen overlay canvas for the particle-burst
+     "galaxy of pixels" effect (timer done, sets, workout finish, achievement
+     unlocks, lockscreen dissolve). One canvas, reused everywhere. -->
+<canvas id="burst-canvas"></canvas>
 <div class="toast" id="toast"></div>
 <div id="unlock-modal">
   <div class="unlock-box">
@@ -480,7 +549,7 @@
 </div>
 
 <script>
-const APP_VERSION = "1.3";
+const APP_VERSION = "1.3.2";
 document.getElementById("app-version-line").textContent = "bymgro v" + APP_VERSION;
 
 /* ================= ICONS (monochrome, currentColor) ================= */
@@ -519,11 +588,10 @@ function setIcon(id, name){ const el = document.getElementById(id); if(el) el.in
 setIcon("plan-edit-btn","pencil");
 setIcon("prev-ex-btn","chevLeft");
 setIcon("next-ex-btn","chevRight");
-setIcon("finish-workout-btn","flagCheck");
+setIcon("finish-pill-icon","flagCheck");
 setIcon("plan-close-btn","close");
 setIcon("nutrition-close-btn","close");
 setIcon("habits-close-btn","close");
-setIcon("achievements-close-btn","close");
 setIcon("add-friend-btn","plus");
 setIcon("add-supp-btn","plus");
 /* Update 1.2: Memori-style layout icons */
@@ -610,6 +678,95 @@ function showScreen(id){
   if(id === "progress-screen") renderProgress();
   if(id === "settings-screen") loadSocial();
 }
+
+/* ================= Stats page: Progress/Kalender/Erfolge switch (Update 1.3.2) ================= */
+let statsTab = "progress";
+function setStatsTab(tab){
+  statsTab = tab;
+  document.querySelectorAll("#stats-switch .seg-btn").forEach(b=> b.classList.toggle("on", b.dataset.tab===tab));
+  document.querySelectorAll(".stats-panel").forEach(p=> p.classList.toggle("on", p.id === "stats-panel-"+tab));
+  if(tab === "calendar") renderCalendarBody();
+  if(tab === "achievements") refreshGamification();
+}
+document.querySelectorAll("#stats-switch .seg-btn").forEach(b=>{
+  b.addEventListener("click", ()=> setStatsTab(b.dataset.tab));
+});
+
+/* ================= Particle burst ("galaxy of pixels") system (Update 1.3.2) =================
+   One shared full-screen overlay canvas (#burst-canvas). Small glowing pixel-squares fly outward
+   from a point ("explosion") then get pulled back to the center ("implosion") for the warp-in/out
+   feel the user described -- like the point-cloud effect from pairing an Apple Watch, or a
+   Photoshop glow-noise pixel cloud. Reused everywhere: timer finishing, every 3rd completed set,
+   workout finish (big burst), set-button taps (tiny glow), achievement unlocks (mini burst), and
+   the lockscreen swipe-up dissolve. Coordinates are always in viewport (client) space. */
+let burstCanvas = null, burstCtx = null, burstRafId = null, burstParticles = [];
+function ensureBurstCanvas(){
+  if(burstCanvas) return;
+  burstCanvas = $("burst-canvas");
+  burstCtx = burstCanvas.getContext("2d");
+  const resize = ()=>{
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    burstCanvas.width = innerWidth * dpr; burstCanvas.height = innerHeight * dpr;
+    burstCanvas.style.width = innerWidth + "px"; burstCanvas.style.height = innerHeight + "px";
+    burstCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  };
+  resize();
+  window.addEventListener("resize", resize);
+}
+function spawnBurst(x, y, opts){
+  opts = opts || {};
+  ensureBurstCanvas();
+  const big = !!opts.big;
+  const count = opts.count || (big ? 240 : 50);
+  const maxRBase = opts.radius || (big ? Math.max(innerWidth, innerHeight) * 0.6 : 80);
+  const life = opts.life || (big ? 1500 : 650);
+  const hue = opts.color || "255,255,255";
+  const now0 = performance.now();
+  for(let i=0;i<count;i++){
+    const a = Math.random() * Math.PI * 2;
+    burstParticles.push({
+      x, y, a, size: 1.2 + Math.random() * (big ? 3.2 : 2.2),
+      born: now0, life, maxR: maxRBase * (0.5 + Math.random() * 0.5), hue,
+    });
+  }
+  burstCanvas.style.display = "block";
+  if(!burstRafId) burstLoop();
+}
+function burstLoop(){
+  const now = performance.now();
+  burstCtx.clearRect(0, 0, burstCanvas.width, burstCanvas.height);
+  burstParticles = burstParticles.filter(p => now - p.born < p.life);
+  burstCtx.save();
+  burstParticles.forEach(p=>{
+    const t = (now - p.born) / p.life; // 0..1 over the particle's life
+    // explode outward for the first 55% (ease-out), then implode back to
+    // the origin for the remaining 45% -- the "explosion then implosion /
+    // warp effect" the user asked for.
+    let r;
+    if(t < 0.55){
+      const et = t / 0.55;
+      r = p.maxR * (1 - Math.pow(1 - et, 3));
+    } else {
+      const it = (t - 0.55) / 0.45;
+      r = p.maxR * (1 - it);
+    }
+    const px = p.x + Math.cos(p.a) * r;
+    const py = p.y + Math.sin(p.a) * r;
+    const alpha = t < 0.55 ? Math.min(1, t / 0.15) : Math.max(0, 1 - (t - 0.55) / 0.45);
+    burstCtx.fillStyle = `rgba(${p.hue},${alpha})`;
+    burstCtx.shadowColor = `rgba(${p.hue},${Math.min(1, alpha + 0.2)})`;
+    burstCtx.shadowBlur = 6;
+    burstCtx.fillRect(px - p.size/2, py - p.size/2, p.size, p.size);
+  });
+  burstCtx.restore();
+  if(burstParticles.length > 0){
+    burstRafId = requestAnimationFrame(burstLoop);
+  } else {
+    burstRafId = null;
+    burstCanvas.style.display = "none";
+  }
+}
+
 $("open-timer-btn").addEventListener("click", ()=> showScreen("timer-screen"));
 $("timer-back-btn").addEventListener("click", ()=> showScreen("workout-screen"));
 $("open-progress-btn").addEventListener("click", ()=> showScreen("progress-screen"));
@@ -735,6 +892,16 @@ function toggleSet(setIndex){
   const pills = document.querySelectorAll(".set-pill");
   if(pills[setIndex]){ pills[setIndex].classList.remove("pop"); void pills[setIndex].offsetWidth; pills[setIndex].classList.add("pop"); }
   if(!already && navigator.vibrate) navigator.vibrate(15);
+  // Update 1.3.2: small pixel-glow burst right on the button when a set is
+  // checked off, plus a bigger one every 3 completed sets across the workout.
+  if(!already && pills[setIndex]){
+    const r = pills[setIndex].getBoundingClientRect();
+    spawnBurst(r.left + r.width/2, r.top + r.height/2, {count:22, radius:34, life:420});
+    const totalDone = Object.values(state.loggedSets).reduce((n, arr)=> n + arr.filter(v=>v!==null).length, 0);
+    if(totalDone > 0 && totalDone % 3 === 0){
+      spawnBurst(innerWidth/2, innerHeight/2, {count:130, radius:170, life:950});
+    }
+  }
 }
 
 $("w-minus").addEventListener("click", ()=>{ state.weight = Math.max(0, state.weight - WEIGHT_STEP); $("w-val").textContent = fmt1(state.weight); });
@@ -754,6 +921,8 @@ async function finishWorkout(){
   const bw = bwStr && !isNaN(parseFloat(bwStr)) ? parseFloat(bwStr) : null;
   const result = await api(`/api/workout/${state.session.session_id}/finish`, {method:"POST", body: JSON.stringify({bodyweight_kg: bw})});
   toast("Workout gespeichert", "check");
+  // Update 1.3.2: a really big burst at the end of the workout.
+  spawnBurst(innerWidth/2, innerHeight/2, {big:true});
   state.session = null;
   await initWorkout();
   if(result.gamification) handleGamification(result.gamification);
@@ -824,6 +993,27 @@ $("plan-save-btn").addEventListener("click", async ()=>{
 });
 
 /* ================= PROGRESS (swipe carousel) ================= */
+/* Catmull-Rom -> cubic Bezier smoothing, so chart lines curve gently
+   through each point instead of meeting at sharp straight-line corners
+   (Update 1.3.2: "mach den Graphen auch bissi abgerundeter"). */
+function smoothPath(coords){
+  if(coords.length < 3){
+    return coords.map((c,i)=> (i===0?"M":"L")+c[0].toFixed(1)+","+c[1].toFixed(1)).join(" ");
+  }
+  let d = `M${coords[0][0].toFixed(1)},${coords[0][1].toFixed(1)} `;
+  for(let i=0;i<coords.length-1;i++){
+    const p0 = coords[i-1] || coords[i];
+    const p1 = coords[i];
+    const p2 = coords[i+1];
+    const p3 = coords[i+2] || p2;
+    const cp1x = p1[0] + (p2[0]-p0[0])/6;
+    const cp1y = p1[1] + (p2[1]-p0[1])/6;
+    const cp2x = p2[0] - (p3[0]-p1[0])/6;
+    const cp2y = p2[1] - (p3[1]-p1[1])/6;
+    d += `C${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)} `;
+  }
+  return d.trim();
+}
 function buildBigChart(points, xKey, yKey, unit){
   const w = 320, h = 260, padL = 8, padR = 8, padT = 10, padB = 24;
   if(points.length === 0) return '<div class="empty-note">Noch keine Daten für diese Übung.</div>';
@@ -837,7 +1027,7 @@ function buildBigChart(points, xKey, yKey, unit){
     const y = padT + (h-padT-padB) - ((p[yKey]-minY)/rangeY)*(h-padT-padB);
     return [x,y];
   });
-  const linePath = coords.map((c,i)=> (i===0?"M":"L")+c[0].toFixed(1)+","+c[1].toFixed(1)).join(" ");
+  const linePath = smoothPath(coords);
   const areaPath = linePath + ` L${coords[coords.length-1][0].toFixed(1)},${h-padB} L${coords[0][0].toFixed(1)},${h-padB} Z`;
   const dots = coords.map((c,i)=> `<circle class="bc-dot${i===coords.length-1?' last':''}" cx="${c[0].toFixed(1)}" cy="${c[1].toFixed(1)}" r="${i===coords.length-1?5:3.2}"></circle>`).join("");
   // x-axis labels: first, middle, last
@@ -865,7 +1055,6 @@ async function loadHistoryDays(){
 }
 function calendarPageHtml(){
   return `
-    <div class="ph"><div><div class="name">Trainingskalender</div><div class="muscle">Verlauf</div></div></div>
     <div class="cal-nav-row">
       <button class="icon-btn arrow" id="cal-prev"></button>
       <span class="cal-month-label" id="cal-month-label"></span>
@@ -877,7 +1066,6 @@ function calendarPageHtml(){
       <span><span class="dot" style="background:var(--accent)"></span>Push</span>
       <span><span class="dot" style="background:var(--good)"></span>Pull</span>
     </div>
-    <div class="swipe-hint">nach unten wischen für Körpergewicht &amp; Übungen ↓</div>
   `;
 }
 async function renderCalendarBody(){
@@ -922,7 +1110,18 @@ async function renderProgress(){
   }
   if(calYear === null){ const now = new Date(); calYear = now.getFullYear(); calMonth = now.getMonth(); }
 
-  const pages = [{ isCalendar: true }];
+  // Update 1.3.2: the calendar is now its own "Kalender" tab (see the
+  // Progress/Kalender/Erfolge switch) instead of the first carousel page --
+  // fill its container once per render so cal-prev/cal-next keep working.
+  $("stats-calendar-body").innerHTML = calendarPageHtml();
+  renderCalendarBody();
+
+  // Update 1.3.2: every point already only exists for a date the exercise
+  // was actually logged on (the backend only writes a row when a set is
+  // saved) -- so these graphs already only ever plot real training days,
+  // going back to the 30.04. seed. Nothing to filter here; noted so this
+  // doesn't get "fixed" into something that interpolates gaps later.
+  const pages = [];
   const bw = progress.bodyweight || [];
   pages.push({ name: "Körpergewicht", muscle: "Verlauf", unit: "kg",
     latest: bw.length ? bw[bw.length-1].kg : null,
@@ -943,20 +1142,15 @@ async function renderProgress(){
       latest: latest.reps, html: buildBigChart(points, "date", "reps") });
   });
 
-  carousel.innerHTML = pages.map((p, i) => {
-    if(p.isCalendar) return `<div class="progress-page" data-idx="${i}">${calendarPageHtml()}</div>`;
-    return `
+  carousel.innerHTML = pages.map((p, i) => `
     <div class="progress-page" data-idx="${i}">
       <div class="ph">
         <div><div class="name">${p.name}</div><div class="muscle">${p.muscle}</div></div>
         <div class="latest">${p.latest !== null && p.latest !== undefined ? fmt1(p.latest) : "—"}<div class="u">${p.unit}</div></div>
       </div>
       <div class="progress-chart-wrap">${p.html}</div>
-      ${i === 1 ? '<div class="swipe-hint">nach unten wischen für die nächste Übung ↓</div>' : ''}
-    </div>`;
-  }).join("");
-
-  renderCalendarBody();
+      ${i === 0 && pages.length>1 ? '<div class="swipe-hint">nach unten wischen für die nächste Übung ↓</div>' : ''}
+    </div>`).join("");
 }
 
 /* ================= PROFILE ================= */
@@ -1047,6 +1241,11 @@ function showNextUnlock(){
   $("unlock-desc").textContent = a.desc;
   $("unlock-modal").classList.add("show");
   if(navigator.vibrate) navigator.vibrate([30,40,30]);
+  // Update 1.3.2: mini pixel-glow burst around the achievement icon.
+  setTimeout(()=>{
+    const r = $("unlock-icon").getBoundingClientRect();
+    spawnBurst(r.left + r.width/2, r.top + r.height/2, {count:60, radius:70, life:750});
+  }, 80);
 }
 $("unlock-close-btn").addEventListener("click", ()=>{
   $("unlock-modal").classList.remove("show");
@@ -1063,8 +1262,14 @@ function renderAchievements(list){
     </div>
   `).join("");
 }
-$("open-achievements-btn").addEventListener("click", async ()=>{ await refreshGamification(); showScreen("achievements-screen"); });
-$("achievements-close-btn").addEventListener("click", ()=> showScreen("settings-screen"));
+/* Update 1.3.2: Erfolge is now a tab on the Stats page (see the
+   Progress/Kalender/Erfolge switch) instead of its own top-level screen --
+   the Settings quick-nav button just opens Stats with that tab selected. */
+$("open-achievements-btn").addEventListener("click", async ()=>{
+  await refreshGamification();
+  showScreen("progress-screen");
+  setStatsTab("achievements");
+});
 
 /* ================= SOCIAL ================= */
 async function loadSocial(){
@@ -1234,14 +1439,13 @@ function renderCalStrip(history){
 
   let totalSeconds = 0, dragging = false, lastX = 0, accumDeg = 0;
   let running = false, remainingSeconds = 0, runStartTs = 0, runDurationSeconds = 0, rafId = null;
-  let windPhiAtRelease = 0, sweepTotalAtRelease = 0;
-  // Update 1.3: winding by tracking rotation angle around the center made
-  // "which way is winding" depend on *where on the dial* you first touched
-  // (dragging left near the top vs. near the bottom are opposite rotations
-  // -- confirmed wrong both times it was tried). A plain horizontal drag is
-  // unambiguous: left always adds time, right always removes it, no matter
-  // where you touch. DEG_PER_PX keeps the same feel as before -- dragging
-  // all the way across the dial's diameter is about one full rotation.
+  let windTotalAtRelease = 0;
+  // Update 1.3.2: think of it like winding a real kitchen timer -- drag
+  // from 12 toward 3 (i.e. rightward, a clockwise motion at the top of the
+  // dial) to wind up time. A plain horizontal drag is unambiguous no matter
+  // where on the dial you touch: right always adds time, left removes it.
+  // DEG_PER_PX keeps the same feel as before -- dragging all the way across
+  // the dial's diameter is about one full rotation.
   const DEG_PER_PX = 180 / (Math.PI * R);
   function normDeg(d){ let x = d % 360; if(x<0) x+=360; return x; }
 
@@ -1277,9 +1481,14 @@ function renderCalStrip(history){
     const tipX = cx + Math.cos(handA)*handLen, tipY = cy + Math.sin(handA)*handLen;
     const b1x = cx + Math.cos(perp)*baseHW, b1y = cy + Math.sin(perp)*baseHW;
     const b2x = cx - Math.cos(perp)*baseHW, b2y = cy - Math.sin(perp)*baseHW;
+    // Update 1.3.2: subtle white glow on the hand, matching the chart lines.
+    ctx.save();
+    ctx.shadowColor = "rgba(255,255,255,.85)";
+    ctx.shadowBlur = 10;
     ctx.beginPath();
     ctx.moveTo(b1x, b1y); ctx.lineTo(tipX, tipY); ctx.lineTo(b2x, b2y); ctx.closePath();
     ctx.fillStyle = "#ffffff"; ctx.fill();
+    ctx.restore();
     ctx.strokeStyle = ink; ctx.globalAlpha = 0.5; ctx.lineWidth = 1; ctx.stroke(); ctx.globalAlpha = 1;
   }
 
@@ -1290,7 +1499,7 @@ function renderCalStrip(history){
     running = false; if(rafId) cancelAnimationFrame(rafId);
     accumDeg = 0; totalSeconds = 0; remainingSeconds = 0;
     updateReadout(0); draw(0);
-    $("timer-hint").textContent = "Nach links ziehen, um Zeit hinzuzufügen — eine Umdrehung = 1 Minute. Loslassen startet den Countdown.";
+    $("timer-hint").textContent = "Nach rechts ziehen (von 12 Richtung 3), um Zeit hinzuzufügen — eine Umdrehung = 1 Minute. Loslassen startet den Countdown.";
   }
   function pointerPos(e){
     const rect = canvas.getBoundingClientRect();
@@ -1309,10 +1518,10 @@ function renderCalStrip(history){
     if(!dragging) return;
     const p = pointerPos(e);
     const dx = p.x - lastX;
-    // Update 1.3: dragging left (dx negative) always winds up more time,
-    // regardless of where on the dial the drag started -- see DEG_PER_PX
-    // above for why this replaced the old angle-tracking approach.
-    accumDeg -= dx * DEG_PER_PX;
+    // Update 1.3.2: dragging right (dx positive) always winds up more time --
+    // like turning a kitchen timer clockwise, from 12 toward 3 -- regardless
+    // of where on the dial the drag started. See DEG_PER_PX above.
+    accumDeg += dx * DEG_PER_PX;
     accumDeg = Math.max(0, Math.min(accumDeg, 360*30));
     lastX = p.x;
     totalSeconds = (accumDeg/360) * 60;
@@ -1327,18 +1536,11 @@ function renderCalStrip(history){
   }
   function startCountdown(seconds){
     running = true; runDurationSeconds = seconds; runStartTs = performance.now();
-    // Update 1.3: the countdown now sweeps clockwise ("to the right") back
-    // to 12, the mirror image of how it used to unwind straight backward
-    // along the same path it was wound. windPhiAtRelease is where the hand
-    // is right now (0-360); sweepTotalAtRelease is the clockwise distance
-    // from there to 12, including whole extra laps for multi-minute winds
-    // -- see tick() for how these turn into the per-frame hand angle. This
-    // keeps the hand continuous with wherever winding left it (no visual
-    // jump) while still landing exactly on 12 when the countdown ends.
-    const phi = normDeg(accumDeg);
-    const laps = Math.floor(accumDeg / 360);
-    windPhiAtRelease = phi;
-    sweepTotalAtRelease = (360 - phi) + 360 * laps;
+    // Update 1.3.2: like a real wind-up kitchen timer, the countdown just
+    // unwinds straight back along the same path it was wound -- linearly
+    // back down from wherever winding left the hand to 0/12. No more
+    // separate clockwise-sweep math needed.
+    windTotalAtRelease = accumDeg;
     $("timer-hint").textContent = "Läuft … zum Abbrechen antippen.";
     tick();
   }
@@ -1347,13 +1549,16 @@ function renderCalStrip(history){
     const elapsed = (performance.now() - runStartTs) / 1000;
     remainingSeconds = Math.max(0, runDurationSeconds - elapsed);
     const progress = runDurationSeconds > 0 ? Math.min(1, elapsed / runDurationSeconds) : 1;
-    draw(normDeg(windPhiAtRelease + progress * sweepTotalAtRelease));
+    draw(normDeg(windTotalAtRelease * (1 - progress)));
     updateReadout(remainingSeconds);
     if(remainingSeconds <= 0){
       running = false; updateReadout(0);
       $("timer-hint").textContent = "Fertig!";
       if(navigator.vibrate) navigator.vibrate([200,80,200,80,200]);
       draw(0);
+      // Update 1.3.2: the timer "explodes into a galaxy of pixels" when time is up.
+      const rect = canvas.getBoundingClientRect();
+      spawnBurst(rect.left + rect.width/2, rect.top + rect.height/2, {count:170, radius:130, life:1100});
       return;
     }
     rafId = requestAnimationFrame(tick);
@@ -1366,6 +1571,56 @@ function renderCalStrip(history){
   canvas.addEventListener("touchend", onUp);
   $("timer-reset-btn").addEventListener("click", resetAll);
   resetAll();
+})();
+
+/* ================= Lockscreen (Update 1.3.2, memori-style swipe-up entry) =================
+   A full-screen lock with the logo, shown on load. Swiping up dissolves it into the same
+   pixel-burst "galaxy" effect used elsewhere in the app, then reveals the app underneath. */
+(function(){
+  const lock = $("lock-screen");
+  let startY = null, dragging = false, unlocking = false;
+  function posY(e){ const t = e.touches ? e.touches[0] : e; return t.clientY; }
+  function onStart(e){
+    if(unlocking) return;
+    dragging = true; startY = posY(e);
+  }
+  function onMove(e){
+    if(!dragging || unlocking) return;
+    const dy = posY(e) - startY;
+    if(dy < 0){
+      const drag = Math.min(1, -dy / 140);
+      lock.style.opacity = String(1 - drag * 0.5);
+      lock.style.transform = `translateY(${dy * 0.4}px)`;
+    }
+  }
+  function onEnd(e){
+    if(!dragging || unlocking) return;
+    dragging = false;
+    const endY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
+    const dy = endY - startY;
+    if(dy < -70) unlock();
+    else { lock.style.opacity = ""; lock.style.transform = ""; }
+  }
+  function unlock(){
+    unlocking = true;
+    const cx = innerWidth/2, cy = innerHeight/2;
+    // several staggered bursts across the screen, plus one big central one --
+    // reads as the whole lockscreen dissolving into a pixel fog / galaxy.
+    for(let i=0;i<4;i++){
+      setTimeout(()=> spawnBurst(Math.random()*innerWidth, Math.random()*innerHeight, {count:80, radius:140, life:1100}), i*70);
+    }
+    spawnBurst(cx, cy, {big:true});
+    lock.style.transition = "opacity .6s ease, transform .6s ease";
+    lock.style.opacity = "0";
+    lock.style.transform = "translateY(-60px)";
+    setTimeout(()=> lock.classList.add("hidden"), 550);
+  }
+  lock.addEventListener("touchstart", onStart, {passive:true});
+  lock.addEventListener("touchmove", onMove, {passive:true});
+  lock.addEventListener("touchend", onEnd);
+  lock.addEventListener("mousedown", onStart);
+  window.addEventListener("mousemove", (e)=>{ if(dragging) onMove(e); });
+  window.addEventListener("mouseup", (e)=>{ if(dragging) onEnd(e); });
 })();
 
 /* ================= boot ================= */
