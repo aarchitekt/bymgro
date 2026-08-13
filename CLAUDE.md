@@ -82,8 +82,8 @@ conditions for suggesting it is actually met.
 ## Versioning rule
 
 Every future update should bump `APP_VERSION` in `frontend/index.html` AND
-`backend/main.py` (currently `"1.3.2"`) — shown in Einstellungen as a small
-muted "bymgro v1.3.2" line at the very bottom (`#app-version-line`, styled
+`backend/main.py` (currently `"1.4"`) — shown in Einstellungen as a small
+muted "bymgro v1.4" line at the very bottom (`#app-version-line`, styled
 like memori-mvp's own version tag) — bump as part of the change, before
 syncing/deploying.
 
@@ -532,6 +532,133 @@ background regardless of lock state (data is ready by the time the user
 swipes). Note this is purely a UI gate, not authentication — identity is
 still the `localStorage` UUID described under "Identity / multi-user"
 above; the lockscreen doesn't add or replace that.
+
+## Update 1.4: training-screen redesign, chart fixes, coach, and general polish
+
+Big multi-part update, all implemented in one pass per explicit user
+instruction ("Du kannst deine Vorschläge direkt einbauen ohne mich zu
+fragen"). Verified via a dedicated Playwright script (fresh DB, full
+workout flow) plus direct `buildBigChart()` evaluation with synthetic
+zero-weight data — see the numbers cited below, all pulled from that run.
+
+**Auto-advance to the next exercise.** `toggleSet()` now checks, after a
+set is newly logged (not un-logged), whether every set for the current
+exercise is done; if so and it isn't the last exercise, it waits 650ms
+(1000ms if a PR just fired, so the celebration is visible first), then
+re-checks the same condition before advancing (guards against the user
+navigating away or un-logging in the meantime) and shows a small "Weiter:
+<next exercise>" toast. Confirmed in testing: logging all 3 sets of "Pull
+Up" auto-advanced to "Lat Pull Down".
+
+**Whole-workout overview strip, replacing the dot row.** `#ex-dots`/
+`.dot`/`renderDots()` are gone. `#ex-overview` + `renderOverview()` render
+one `.ex-chip` per exercise (name text, not just a dot), highlighting the
+current one and checkmarking finished ones; tapping a chip jumps straight
+to that exercise (`state.exIndex = i; renderExercise()`), confirmed
+working in testing. Horizontal-scrolling, auto-scrolls the current chip
+into view on every render.
+
+**Big plain prev/next-exercise arrows next to the steppers.** The old
+small circular `.icon-btn.arrow` buttons that sat up by the dot row are
+gone; `#prev-ex-btn`/`#next-ex-btn` (same ids, so no JS listener changes
+needed beyond render calls) are now borderless `.big-arrow` buttons
+flanking a `.stepper-col` (weight row stacked above reps row) inside a new
+`.ex-switch-row`. Also added: swipe left/right on `.exercise-card` does
+the same navigation (touchstart/touchend delta, threshold 60px horizontal
+and dominant over vertical) — pure mobile-native addition, doesn't
+interfere with tapping stepper buttons since taps don't cross the
+threshold.
+
+**Progress charts: carry-forward instead of dipping to zero, plus a
+left-side kg/wdh scale.** `buildBigChart()` now does a carry-forward pass
+before computing anything else: any point whose value is `0`/falsy gets
+replaced with the last real value seen so far (dropped entirely if there's
+no prior real value to carry from). This was a real, verifiable bug, not
+a misunderstanding: an exercise logged with weight `0` (e.g. an unweighted
+set) produced a real `weight: 0` row from `storage.get_progress()`'s
+`MAX(ss.weight)` query, and the old code plotted that as a literal drop to
+the chart's zero baseline. Confirmed the fix with synthetic data fed
+directly into `buildBigChart()`: points `[14, 16, 0, 18]` → plotted y-values
+`[14, 16, 16, 18]` (the `0` became `16`, same height as the point before
+it) and the y-axis min/max (`14`/`18`) correctly excluded the `0` from
+ranging. The chart also grew a left-side axis: `padL` went from `8` to
+`34`, three `.bc-grid` guide lines + `.bc-ylabel` text at max/mid/min are
+drawn first (so they sit behind the line/area), one call per chart page —
+14 exercise/bodyweight pages × 3 ticks = 42 labels confirmed present in
+testing.
+
+**Grainy, wider-reaching glow** (was a plain layered `drop-shadow`).
+Chart line/last-dot: new `#chartGrainGlow` SVG filter (in a hidden `<svg
+width="0" height="0">` right after `<body>`) — double `feGaussianBlur`
+(tight + wide, wider than the old drop-shadow radii) merged with the
+source, then `feTurbulence` fractal noise converted to white and
+`feComposite`'d with `operator="in"` against the glow so the grain is
+clipped to the glow's own silhouette rather than speckling the whole
+canvas. Applied via `filter: url(#chartGrainGlow) drop-shadow(...)` on
+`.bc-line`/`.bc-dot.last`. Timer hand: a 110×110 offscreen "grain sprite"
+canvas is precomputed **once** at IIFE-init time (radial gradient +
+per-pixel random alpha noise baked in via `getImageData`/`putImageData`)
+and stamped onto the hand every frame with `globalCompositeOperation =
+"lighter"` at low alpha — avoids generating noise 60×/second, which would
+be far too slow. `shadowBlur` on the hand itself also went from `10` to
+`16` for the "weiter strahlen" (wider reach) ask. If either glow ever
+needs retuning: chart grain lives entirely in the `#chartGrainGlow`
+`<filter>` defs block; timer grain lives in the `grainSprite` IIFE +
+its two `drawImage` calls in `draw()`.
+
+**AI-coach bubble under the set pills.** Important honesty note for future
+Claude: this is **not** a live LLM integration — there is no chat backend,
+no API key, nothing conversational. It's a `.coach-bubble` div
+(`#coach-text`) that always shows one of two things: a progress-aware tip
+(`coachTipFor()`, only for `kind:"weight"` exercises with real history in
+`state.progressData` — compares the last logged weight to the all-time
+best and phrases it accordingly) or, if there's no history yet, a random
+line from the static `COACH_QUOTES` array (humorous/motivating, including
+the explicitly requested Khabib/Dagestan-style humor). Tapping the bubble
+cycles to a new random quote (`pickCoachQuote()`, avoids repeating the
+immediately-previous one) plus a tiny `spawnBurst()` sparkle — matches the
+ask ("man kann drauf reagieren ... oder auch nicht"). If a real
+conversational coach is ever wanted, that's a materially bigger feature
+(a chat endpoint, an LLM API key the user would have to provide and that
+Claude should never accept pasted into chat — see the credentials rule in
+the top-level system rules) and should be scoped as its own update, not
+assumed to already exist because the UI is labeled "coach".
+
+**Five general-improvement suggestions, all implemented:**
+1. **Auto rest-timer.** `#rest-chip` floats in after every newly-logged set
+   (90s for `kind:"weight"`, 45s otherwise), skipped only if it was the
+   last set of the last exercise. `startRestTimer()`/`cancelRestTimer()`
+   use `performance.now()` + `requestAnimationFrame`, not a naive
+   `setInterval` counter, for the same drift-resistance reason as the
+   wind-up timer. Skippable via its own button; vibrates on completion.
+2. **Personal-record (PR) detection.** `prBestFor(name)` lazily computes
+   and caches (in `state.prBests`) the all-time max weight per exercise
+   from `state.progressData` (loaded once per workout via `/api/progress`
+   on `start-btn` click). A newly-logged weight exceeding that best fires
+   a distinct toast + a bigger/differently-positioned `spawnBurst()` +
+   a longer vibration pattern. Confirmed in testing (logged 67.5kg against
+   a 45kg history-best → "Neuer Bestwert: 67.5 kg!").
+3. **Swipe between exercises** — see the big-arrows section above.
+4. **Real end-of-workout summary.** `finishWorkout()` now sums total sets
+   logged and total volume (`Σ weight × reps` across `state.loggedSets`)
+   and shows `"Workout gespeichert — N Sätze, X kg bewegt"` instead of a
+   bare "Workout gespeichert" — confirmed in testing with real numbers.
+   `toast()` gained an optional third `ms` param (default unchanged at
+   1800) so this summary can stay up longer (3200ms).
+5. **Click-to-jump overview chips** — see above; doubles as a sixth
+   navigation improvement beyond what was strictly asked.
+
+**Static timer-hint text fix (unrelated small bug caught while in this
+file):** the HTML's initial `#timer-hint` text still said "Nach links
+ziehen" from before the Update 1.3.2 direction flip — functionally
+harmless since `resetAll()` overwrites it on load, but fixed the static
+text to match anyway so there's no flash-of-wrong-copy before JS runs.
+
+If a future update touches the training screen again: `renderExercise()`
+is the single place that re-renders everything for the current exercise
+(steppers, set pills, overview strip, coach) — call it, don't
+hand-update individual pieces, or the overview/coach will drift out of
+sync with the actual current exercise.
 
 ## Known gaps / next steps (not yet built)
 

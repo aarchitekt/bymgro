@@ -142,11 +142,6 @@
 
   .day-badge { display:inline-block; padding: 5px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; background: var(--panel); border: 1px solid var(--line); color: var(--ink); }
 
-  .ex-nav-row { display:flex; align-items:center; justify-content:center; gap: 14px; margin: 4px 0 2px; }
-  .dots { display:flex; gap:6px; justify-content:center; flex-wrap: wrap; max-width: 200px; }
-  .dot { width:6px; height:6px; border-radius:50%; background: var(--line); transition: all .2s ease; }
-  .dot.done { background: var(--accent); }
-  .dot.now { background: var(--ink); width:8px; height:8px; }
 
   .exercise-card { flex: 1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; gap: 8px; padding: 6px 0; }
   .exercise-muscle { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .05em; opacity: .7; }
@@ -165,6 +160,33 @@
   .set-pill.pop { animation: popIn .3s cubic-bezier(.3,1.5,.5,1); }
 
   .quiet-row { position: absolute; bottom: 14px; right: 14px; display:flex; gap:8px; }
+
+  /* ---------- Update 1.4: whole-workout overview strip (was just dots) ---------- */
+  .ex-overview { display:flex; gap:8px; overflow-x:auto; padding: 2px 4px 8px; margin: 2px 0 0; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+  .ex-overview::-webkit-scrollbar { display:none; }
+  .ex-chip { flex-shrink:0; display:flex; align-items:center; gap:5px; padding:7px 12px; border-radius:999px; border:1px solid var(--line); background:var(--panel); font-size:11.5px; font-weight:600; color:var(--muted); white-space:nowrap; cursor:pointer; transition: all .18s ease; }
+  .ex-chip.now { border-color: var(--ink); background: var(--ink); color: var(--on-ink); }
+  .ex-chip.done { color: var(--accent); border-color: var(--accent); }
+  .ex-chip .chip-check { width:12px; height:12px; flex-shrink:0; }
+
+  /* ---------- Update 1.4: big plain arrows flanking the steppers (was small circle buttons up by the dots) ---------- */
+  .ex-switch-row { display:flex; align-items:center; justify-content:center; gap: 4px; width:100%; }
+  .big-arrow { background:none; border:none; color: var(--ink); width: 48px; height: 64px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; opacity:.8; transition: transform .12s ease, opacity .12s ease; }
+  .big-arrow svg { width: 32px; height: 32px; }
+  .big-arrow:active { transform: scale(.82); opacity:1; }
+  .big-arrow:disabled { opacity: .18; }
+  .stepper-col { display:flex; flex-direction:column; gap: 2px; }
+
+  /* ---------- Update 1.4: AI-coach bubble under the set pills ---------- */
+  .coach-bubble { display:flex; align-items:flex-start; gap:8px; max-width: 300px; margin: 18px auto 0; padding: 10px 14px; border-radius: 16px 16px 16px 4px; background: var(--panel); border: 1px solid var(--line); font-size: 12.5px; line-height: 1.4; color: var(--ink); cursor: pointer; transition: transform .12s ease; }
+  .coach-bubble:active { transform: scale(.97); }
+  .coach-bubble .ci { width:16px; height:16px; flex-shrink:0; margin-top:1px; color: var(--accent); }
+  .coach-bubble.hidden { display:none; }
+
+  /* ---------- Update 1.4: auto rest-timer chip after logging a set ---------- */
+  .rest-chip { position:absolute; top:10px; left:50%; transform: translateX(-50%); display:flex; align-items:center; gap:8px; background: var(--ink); color: var(--on-ink); padding: 8px 14px; border-radius: 999px; font-size: 12.5px; font-weight:700; z-index: 40; box-shadow: 0 6px 18px rgba(0,0,0,.25); opacity:0; pointer-events:none; transition: opacity .2s ease, transform .2s ease; }
+  .rest-chip.show { opacity:1; pointer-events:auto; transform: translateX(-50%) translateY(0); }
+  .rest-chip button { background:none; border:none; color: var(--on-ink); opacity:.7; font-size: 11px; cursor:pointer; padding:2px 4px; }
 
   .card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 16px; margin-bottom: 12px; }
   .field { display:flex; flex-direction:column; gap:6px; margin-bottom: 14px; }
@@ -204,17 +226,23 @@
   .progress-page .ph .latest .u { font-size: 13px; color: var(--muted); font-weight: 600; }
   .progress-chart-wrap { flex:1; display:flex; align-items:center; justify-content:center; min-height: 0; }
   svg.bigchart { width: 100%; height: 100%; max-height: 320px; overflow: visible; }
-  /* ---------- Update 1.3.2: white, rounded, softly glowing chart line
-     (same treatment as the timer hand) instead of the flat accent-orange
-     line -- layered drop-shadows approximate a soft pixel/noise glow
-     without a full custom SVG noise filter. ---------- */
+  /* ---------- Update 1.3.2/1.4: white, rounded, glowing chart line (same
+     treatment as the timer hand). Update 1.4 per feedback ("der glow
+     sollte grain haben und weiter strahlen"): now runs through the
+     #chartGrainGlow SVG filter (see the hidden <svg> near the top of
+     <body>) which blurs wider than before and mixes in fractal-noise
+     grain clipped to the glow's own silhouette, layered under the same
+     crisp drop-shadow used previously for the tight inner glow. ---------- */
   .bc-line { fill:none; stroke: #ffffff; stroke-width:2.75; stroke-linecap:round; stroke-linejoin:round;
-    filter: drop-shadow(0 0 1.5px rgba(255,255,255,.9)) drop-shadow(0 0 6px rgba(255,255,255,.55)) drop-shadow(0 0 14px rgba(255,255,255,.3)); }
+    filter: url(#chartGrainGlow) drop-shadow(0 0 1.5px rgba(255,255,255,.9)); }
   .bc-area { fill: #ffffff; opacity: 0.07; }
   .bc-dot { fill: var(--bg); stroke: #ffffff; stroke-width: 2.5; filter: drop-shadow(0 0 4px rgba(255,255,255,.5)); }
-  .bc-dot.last { fill: #ffffff; filter: drop-shadow(0 0 3px rgba(255,255,255,.9)) drop-shadow(0 0 9px rgba(255,255,255,.5)); }
+  .bc-dot.last { fill: #ffffff; filter: url(#chartGrainGlow) drop-shadow(0 0 3px rgba(255,255,255,.9)); }
   .bc-axis { stroke: var(--line); stroke-width:1; }
   .bc-xlabel { fill: var(--muted); font-size: 9.5px; font-family: inherit; }
+  /* ---------- Update 1.4: left-side kg/wdh scale on the progress charts ---------- */
+  .bc-grid { stroke: var(--line); stroke-width: 1; }
+  .bc-ylabel { fill: var(--muted); font-size: 9px; font-family: inherit; text-anchor: end; dominant-baseline: middle; }
   .progress-vdots { display:flex; flex-direction:column; gap: 6px; position:absolute; right: 8px; top: 50%; transform: translateY(-50%); }
   .progress-vdots .vd { width:5px; height:5px; border-radius:50%; background: var(--line); }
   .progress-vdots .vd.now { background: var(--ink); width:6px; height:16px; border-radius: 3px; }
@@ -312,6 +340,33 @@
 </style>
 </head>
 <body>
+<!-- Update 1.4: hidden SVG holding the shared "grain glow" filter used by
+     the progress-chart line/dot (see .bc-line / .bc-dot.last) -- wider
+     double-blur for reach ("weiter strahlen") plus fractal-noise grain
+     clipped to the glow's own silhouette so the noise doesn't leak outside
+     the glow shape. Zero-size and absolutely positioned so it never affects
+     layout; only referenced via filter: url(#chartGrainGlow). -->
+<svg width="0" height="0" style="position:absolute;overflow:hidden;" aria-hidden="true">
+  <defs>
+    <filter id="chartGrainGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blurTight"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="9" result="blurWide"/>
+      <feMerge result="glow">
+        <feMergeNode in="blurWide"/>
+        <feMergeNode in="blurTight"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" seed="7" result="noise"/>
+      <feColorMatrix in="noise" type="matrix"
+        values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.55 0" result="whiteNoise"/>
+      <feComposite in="whiteNoise" in2="glow" operator="in" result="grain"/>
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="grain"/>
+      </feMerge>
+    </filter>
+  </defs>
+</svg>
 <div id="app">
   <div class="screens">
 
@@ -343,27 +398,48 @@
         </div>
 
         <div id="workout-active" style="display:none;flex:1;flex-direction:column;min-height:0;position:relative;">
-          <div class="ex-nav-row">
-            <button class="icon-btn arrow" id="prev-ex-btn"></button>
-            <div class="dots" id="ex-dots"></div>
-            <button class="icon-btn arrow" id="next-ex-btn"></button>
+          <!-- Update 1.4: rest-timer chip, floats in when a set is logged. -->
+          <div class="rest-chip" id="rest-chip">
+            <span id="rest-chip-icon"></span><span id="rest-chip-label">Pause 1:30</span>
+            <button id="rest-chip-skip">Überspringen</button>
           </div>
+
+          <!-- Update 1.4: whole-workout overview strip (exercise names, not
+               just dots -- "die Punkte reichen nicht"), tap any chip to jump. -->
+          <div class="ex-overview" id="ex-overview"></div>
+
           <div class="exercise-card">
             <span class="exercise-muscle" id="ex-muscle"></span>
             <h2 class="exercise-name" id="ex-name">—</h2>
 
-            <div id="weight-stepper" class="stepper-row">
-              <button class="stepper-btn" id="w-minus">−</button>
-              <div class="stepper-value"><div class="num" id="w-val">0</div><div class="unit" id="w-unit">kg</div></div>
-              <button class="stepper-btn" id="w-plus">+</button>
-            </div>
-            <div id="reps-stepper" class="stepper-row" style="margin-top:8px;">
-              <button class="stepper-btn" id="r-minus">−</button>
-              <div class="stepper-value"><div class="num" id="r-val">0</div><div class="unit" id="r-unit">wdh</div></div>
-              <button class="stepper-btn" id="r-plus">+</button>
+            <!-- Update 1.4: big plain arrows (no circle) directly flanking the
+                 weight/reps steppers, replacing the small circular prev/next
+                 buttons that used to sit up by the dots. -->
+            <div class="ex-switch-row">
+              <button class="big-arrow" id="prev-ex-btn" title="Vorherige Übung"></button>
+              <div class="stepper-col">
+                <div id="weight-stepper" class="stepper-row">
+                  <button class="stepper-btn" id="w-minus">−</button>
+                  <div class="stepper-value"><div class="num" id="w-val">0</div><div class="unit" id="w-unit">kg</div></div>
+                  <button class="stepper-btn" id="w-plus">+</button>
+                </div>
+                <div id="reps-stepper" class="stepper-row" style="margin-top:8px;">
+                  <button class="stepper-btn" id="r-minus">−</button>
+                  <div class="stepper-value"><div class="num" id="r-val">0</div><div class="unit" id="r-unit">wdh</div></div>
+                  <button class="stepper-btn" id="r-plus">+</button>
+                </div>
+              </div>
+              <button class="big-arrow" id="next-ex-btn" title="Nächste Übung"></button>
             </div>
 
             <div class="set-pills" id="set-pills"></div>
+
+            <!-- Update 1.4: AI-coach bubble, always shows something under the
+                 set pills -- a progress-aware tip or a motivating one-liner.
+                 Tap to cycle to the next one, or ignore it. -->
+            <div class="coach-bubble" id="coach-bubble">
+              <span class="ci" id="coach-icon"></span><span id="coach-text"></span>
+            </div>
           </div>
 
           <!-- Update 1.3.2: always-visible "Training beenden" pill (was a
@@ -381,7 +457,7 @@
         <div class="timer-wrap">
           <canvas id="timer-canvas" width="280" height="280"></canvas>
           <div class="timer-readout" id="timer-readout">0:00</div>
-          <div class="timer-hint" id="timer-hint">Nach links ziehen, um Zeit hinzuzufügen — eine Umdrehung = 1 Minute. Loslassen startet den Countdown.</div>
+          <div class="timer-hint" id="timer-hint">Nach rechts ziehen (von 12 Richtung 3), um Zeit hinzuzufügen — eine Umdrehung = 1 Minute. Loslassen startet den Countdown.</div>
           <div class="timer-actions"><button class="btn secondary small" id="timer-reset-btn">Zurücksetzen</button></div>
         </div>
       </div>
@@ -549,7 +625,7 @@
 </div>
 
 <script>
-const APP_VERSION = "1.3.2";
+const APP_VERSION = "1.4";
 document.getElementById("app-version-line").textContent = "bymgro v" + APP_VERSION;
 
 /* ================= ICONS (monochrome, currentColor) ================= */
@@ -580,6 +656,7 @@ const ICONS = {
   cigarette: '<svg class="ic" viewBox="0 0 24 24"><rect x="2" y="10" width="15" height="4" rx="1"/><path d="M13 10v4M20 8c1 1 1 3 0 4M22 7c1.6 1.6 1.6 4.4 0 6"/></svg>',
   pill: '<svg class="ic" viewBox="0 0 24 24"><rect x="3" y="9" width="18" height="6" rx="3" transform="rotate(-30 12 12)"/><path d="M9 9l6 6"/></svg>',
   gear: '<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82A1.65 1.65 0 0 0 3 13.09H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
+  sparkle: '<svg class="ic" viewBox="0 0 24 24"><path d="M12 3l1.6 5.4L19 10l-5.4 1.6L12 17l-1.6-5.4L5 10l5.4-1.6z"/><path d="M19 15l.7 2.3L22 18l-2.3.7L19 21l-.7-2.3L16 18l2.3-.7z"/></svg>',
 };
 function ic(name){ return ICONS[name] || ""; }
 document.querySelectorAll("[data-icon]").forEach(el => el.innerHTML = ic(el.dataset.icon));
@@ -589,6 +666,8 @@ setIcon("plan-edit-btn","pencil");
 setIcon("prev-ex-btn","chevLeft");
 setIcon("next-ex-btn","chevRight");
 setIcon("finish-pill-icon","flagCheck");
+setIcon("rest-chip-icon","pause");
+setIcon("coach-icon","sparkle");
 setIcon("plan-close-btn","close");
 setIcon("nutrition-close-btn","close");
 setIcon("habits-close-btn","close");
@@ -628,12 +707,12 @@ async function api(path, opts){
   return res.json();
 }
 let toastTimer = null;
-function toast(msg, iconName){
+function toast(msg, iconName, ms){
   const el = $("toast");
   el.innerHTML = (iconName ? ic(iconName) : "") + "<span>"+msg+"</span>";
   el.classList.add("show");
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(()=>el.classList.remove("show"), 1800);
+  toastTimer = setTimeout(()=>el.classList.remove("show"), ms || 1800);
 }
 function fmt1(n){ return (Math.round(n*10)/10).toString(); }
 function fmtDate(iso){
@@ -791,7 +870,8 @@ async function bootstrap(){
 }
 
 /* ================= WORKOUT ================= */
-const state = { plan: null, nextDayType: "push", session: null, exIndex: 0, loggedSets: {}, weight: 0, reps: 0 };
+const state = { plan: null, nextDayType: "push", session: null, exIndex: 0, loggedSets: {}, weight: 0, reps: 0,
+  progressData: null, prBests: {} };
 const WEIGHT_STEP = 1.25;
 
 function todayLabel(){ return new Date().toLocaleDateString("de-DE", {weekday:"long", day:"numeric", month:"long"}); }
@@ -819,6 +899,13 @@ $("start-btn").addEventListener("click", async ()=>{
   state.exIndex = 0;
   state.loggedSets = {};
   resp.exercises.forEach(ex => state.loggedSets[ex.name] = new Array(ex.target_sets).fill(null));
+  cancelRestTimer();
+  state.prBests = {};
+  // Update 1.4: loaded once per workout so the AI-coach tips and PR
+  // detection have real history to compare against, without refetching on
+  // every single set.
+  try{ state.progressData = await api("/api/progress"); }
+  catch(e){ state.progressData = {exercises:{}, reps_exercises:{}, bodyweight:[]}; }
   $("workout-idle").style.display = "none";
   $("workout-active").style.display = "flex";
   renderExercise();
@@ -832,7 +919,6 @@ function renderExercise(){
   $("ex-name").textContent = ex.name.replace(" (Supported)", "");
 
   const showWeight = ex.kind === "weight";
-  const showReps = ex.kind !== "weight" || true;
   $("weight-stepper").style.display = showWeight ? "flex" : "none";
   $("reps-stepper").style.display = "flex";
 
@@ -845,22 +931,33 @@ function renderExercise(){
   $("r-unit").textContent = ex.kind === "time" ? "sek" : (ex.kind === "warmup" ? "min" : "wdh");
 
   renderSetPills();
-  renderDots();
+  renderOverview();
+  renderCoach();
   $("prev-ex-btn").disabled = state.exIndex === 0;
   const isLast = state.exIndex === state.session.exercises.length - 1;
   setIcon("next-ex-btn", isLast ? "flagCheck" : "chevRight");
 }
 
-function renderDots(){
-  const wrap = $("ex-dots");
+/* Update 1.4: whole-workout overview strip (exercise names, not just dots
+   -- "man sollte immer das gesamte Training sehen ... die Punkte reichen
+   nicht aus") -- replaces the old dot row. Tap any chip to jump straight
+   to that exercise. */
+function renderOverview(){
+  const wrap = $("ex-overview");
   wrap.innerHTML = "";
   state.session.exercises.forEach((ex, i)=>{
-    const dot = document.createElement("div");
     const sets = state.loggedSets[ex.name] || [];
     const done = sets.length>0 && sets.every(s=>s!==null);
-    dot.className = "dot" + (done ? " done" : "") + (i===state.exIndex ? " now" : "");
-    wrap.appendChild(dot);
+    const chip = document.createElement("button");
+    chip.className = "ex-chip" + (done ? " done" : "") + (i===state.exIndex ? " now" : "");
+    chip.innerHTML = (done
+      ? '<svg class="ic chip-check" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></svg>'
+      : "") + `<span>${ex.name.replace(" (Supported)","")}</span>`;
+    chip.addEventListener("click", ()=>{ if(i !== state.exIndex){ state.exIndex = i; renderExercise(); } });
+    wrap.appendChild(chip);
   });
+  const nowChip = wrap.children[state.exIndex];
+  if(nowChip) nowChip.scrollIntoView({behavior:"smooth", inline:"center", block:"nearest"});
 }
 
 function renderSetPills(){
@@ -877,6 +974,14 @@ function renderSetPills(){
   });
 }
 
+function prBestFor(name){
+  if(state.prBests[name] !== undefined) return state.prBests[name];
+  const hist = (state.progressData && state.progressData.exercises[name]) || [];
+  const best = hist.reduce((m,p)=> Math.max(m, p.weight||0), 0);
+  state.prBests[name] = best;
+  return best;
+}
+
 function toggleSet(setIndex){
   const ex = currentExercise();
   const already = state.loggedSets[ex.name][setIndex];
@@ -888,13 +993,19 @@ function toggleSet(setIndex){
   state.loggedSets[ex.name][setIndex] = already ? null : payload;
   api(`/api/workout/${state.session.session_id}/set`, {method:"POST", body: JSON.stringify(payload)}).catch(()=>toast("Konnte nicht speichern"));
   renderSetPills();
-  renderDots();
+  renderOverview();
   const pills = document.querySelectorAll(".set-pill");
   if(pills[setIndex]){ pills[setIndex].classList.remove("pop"); void pills[setIndex].offsetWidth; pills[setIndex].classList.add("pop"); }
-  if(!already && navigator.vibrate) navigator.vibrate(15);
+
+  if(already){
+    // Un-checking a set: just stop here, no celebration/advance/rest-timer.
+    return;
+  }
+
+  if(navigator.vibrate) navigator.vibrate(15);
   // Update 1.3.2: small pixel-glow burst right on the button when a set is
   // checked off, plus a bigger one every 3 completed sets across the workout.
-  if(!already && pills[setIndex]){
+  if(pills[setIndex]){
     const r = pills[setIndex].getBoundingClientRect();
     spawnBurst(r.left + r.width/2, r.top + r.height/2, {count:22, radius:34, life:420});
     const totalDone = Object.values(state.loggedSets).reduce((n, arr)=> n + arr.filter(v=>v!==null).length, 0);
@@ -902,12 +1013,139 @@ function toggleSet(setIndex){
       spawnBurst(innerWidth/2, innerHeight/2, {count:130, radius:170, life:950});
     }
   }
+
+  // Update 1.4: personal-record detection -- a logged weight above every
+  // past logged weight for this exercise (from /api/progress, loaded once
+  // when the workout started) gets its own celebration.
+  let isPR = false;
+  if(ex.kind === "weight" && payload.weight > 0){
+    const best = prBestFor(ex.name);
+    if(payload.weight > best){
+      isPR = true;
+      state.prBests[ex.name] = payload.weight;
+      toast(`Neuer Bestwert: ${fmt1(payload.weight)} ${ex.unit}!`, "trophy", 2600);
+      spawnBurst(innerWidth/2, innerHeight*0.35, {count:160, radius:150, life:1000});
+      if(navigator.vibrate) navigator.vibrate([40,30,40,30,90]);
+    }
+  }
+
+  // Update 1.4: auto rest-timer after a logged set, like other gym apps --
+  // skipped only if this was the very last set of the very last exercise
+  // (the workout's basically over, no rest needed).
+  const isLastExOfPlan = state.exIndex === state.session.exercises.length - 1;
+  const allDoneNow = state.loggedSets[ex.name].every(s=>s!==null);
+  if(!(isLastExOfPlan && allDoneNow)){
+    startRestTimer(ex.kind === "weight" ? 90 : 45);
+  }
+
+  // Update 1.4: auto-advance once every set for this exercise is logged --
+  // "wenn alle sets abgeschlossen sind sollte automatisch die nächste
+  // Übung switschen".
+  if(allDoneNow && !isLastExOfPlan){
+    const exNameAtSchedule = ex.name, exIndexAtSchedule = state.exIndex;
+    setTimeout(()=>{
+      // Guard: only advance if the user hasn't already navigated away or
+      // un-logged a set here in the meantime.
+      if(state.exIndex === exIndexAtSchedule && state.loggedSets[exNameAtSchedule].every(s=>s!==null)){
+        state.exIndex++;
+        renderExercise();
+        toast(`Weiter: ${state.session.exercises[state.exIndex].name.replace(" (Supported)","")}`, "chevRight");
+      }
+    }, isPR ? 1000 : 650);
+  }
+
+  renderCoach();
 }
 
 $("w-minus").addEventListener("click", ()=>{ state.weight = Math.max(0, state.weight - WEIGHT_STEP); $("w-val").textContent = fmt1(state.weight); });
 $("w-plus").addEventListener("click", ()=>{ state.weight = state.weight + WEIGHT_STEP; $("w-val").textContent = fmt1(state.weight); });
 $("r-minus").addEventListener("click", ()=>{ state.reps = Math.max(0, state.reps - 1); $("r-val").textContent = fmt1(state.reps); });
 $("r-plus").addEventListener("click", ()=>{ state.reps = state.reps + 1; $("r-val").textContent = fmt1(state.reps); });
+
+/* ================= Update 1.4: auto rest-timer chip ================= */
+let restRafId = null, restEndTs = 0;
+function startRestTimer(seconds){
+  cancelRestTimer();
+  restEndTs = performance.now() + seconds*1000;
+  $("rest-chip").classList.add("show");
+  const tick = ()=>{
+    const remain = Math.max(0, Math.round((restEndTs - performance.now())/1000));
+    $("rest-chip-label").textContent = "Pause " + Math.floor(remain/60) + ":" + String(remain%60).padStart(2,"0");
+    if(remain <= 0){ cancelRestTimer(); if(navigator.vibrate) navigator.vibrate([80,50,80]); return; }
+    restRafId = requestAnimationFrame(tick);
+  };
+  tick();
+}
+function cancelRestTimer(){
+  if(restRafId) cancelAnimationFrame(restRafId);
+  restRafId = null;
+  $("rest-chip").classList.remove("show");
+}
+$("rest-chip-skip").addEventListener("click", (e)=>{ e.stopPropagation(); cancelRestTimer(); });
+
+/* ================= Update 1.4: AI-coach bubble under the set pills =================
+   Always shows something -- a progress-aware tip when there's real history for the
+   current exercise, otherwise a humorous/motivating one-liner. Tap to cycle to a new
+   one; ignoring it is just as valid ("man kann drauf reagieren ... oder auch nicht"). */
+const COACH_QUOTES = [
+  "2-3 years in Dagestan und das hier wäre für dich ein Aufwärmsatz. 💪",
+  "In Dagestan gibt's dafür kein Warmup, nur Wölfe und Wodka. Du machst das trotzdem gut.",
+  "Khabib hat nie im Leben einen Satz ausgelassen. Du auch nicht, oder?",
+  "Schmerz ist nur Schwäche, die den Körper verlässt — oder halt Milchsäure. Beides okay.",
+  "Form vor Ego — auch wenn's schwerfällt, im wörtlichen Sinne.",
+  "Ein Satz mehr als geplant, ein Grund mehr, stolz zu sein.",
+  "Kleine Fortschritte sind immer noch Fortschritte. Weiter so.",
+  "Wenn's leicht wäre, würde es jeder machen. Du machst es gerade.",
+  "Trink Wasser. Ernsthaft. Und dann mach den nächsten Satz.",
+  "Nicht das Gewicht zählt heute, sondern dass du hier bist.",
+];
+let lastCoachQuote = null;
+function pickCoachQuote(){
+  let q;
+  do { q = COACH_QUOTES[Math.floor(Math.random()*COACH_QUOTES.length)]; } while(q === lastCoachQuote && COACH_QUOTES.length > 1);
+  lastCoachQuote = q;
+  return q;
+}
+function coachTipFor(ex){
+  if(ex.kind !== "weight") return null;
+  const hist = (state.progressData && state.progressData.exercises[ex.name]) || [];
+  if(!hist.length) return null;
+  const last = hist[hist.length-1];
+  if(!last.weight) return null;
+  const best = hist.reduce((m,p)=> Math.max(m, p.weight||0), 0);
+  if(last.weight >= best){
+    return `Letztes Mal ${fmt1(last.weight)} ${ex.unit} × ${fmt1(last.reps)} — dein bisheriger Bestwert. Heute drauflegen?`;
+  }
+  return `Letztes Mal ${fmt1(last.weight)} ${ex.unit} × ${fmt1(last.reps)}. Dein Best: ${fmt1(best)} ${ex.unit} — heute ein guter Tag dafür?`;
+}
+function renderCoach(){
+  const ex = currentExercise();
+  $("coach-text").textContent = coachTipFor(ex) || pickCoachQuote();
+}
+$("coach-bubble").addEventListener("click", ()=>{
+  $("coach-text").textContent = pickCoachQuote();
+  const r = $("coach-bubble").getBoundingClientRect();
+  spawnBurst(r.left + 20, r.top + 14, {count:14, radius:22, life:380});
+});
+
+/* ================= Update 1.4: swipe between exercises ================= */
+(function(){
+  const card = document.querySelector(".exercise-card");
+  let sx = 0, sy = 0, tracking = false;
+  card.addEventListener("touchstart", (e)=>{
+    const t = e.touches[0]; sx = t.clientX; sy = t.clientY; tracking = true;
+  }, {passive:true});
+  card.addEventListener("touchend", (e)=>{
+    if(!tracking) return;
+    tracking = false;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - sx, dy = t.clientY - sy;
+    if(Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy)*1.5){
+      if(dx < 0 && state.exIndex < state.session.exercises.length - 1){ state.exIndex++; renderExercise(); }
+      else if(dx > 0 && state.exIndex > 0){ state.exIndex--; renderExercise(); }
+    }
+  });
+})();
 
 $("prev-ex-btn").addEventListener("click", ()=>{ if(state.exIndex > 0){ state.exIndex--; renderExercise(); } });
 $("next-ex-btn").addEventListener("click", ()=>{
@@ -919,8 +1157,16 @@ $("finish-workout-btn").addEventListener("click", finishWorkout);
 async function finishWorkout(){
   const bwStr = prompt("Aktuelles Körpergewicht in kg (optional, Enter zum Überspringen):", "");
   const bw = bwStr && !isNaN(parseFloat(bwStr)) ? parseFloat(bwStr) : null;
+  cancelRestTimer();
   const result = await api(`/api/workout/${state.session.session_id}/finish`, {method:"POST", body: JSON.stringify({bodyweight_kg: bw})});
-  toast("Workout gespeichert", "check");
+  // Update 1.4: a real summary instead of just "Workout gespeichert" -- sets
+  // logged + total volume (kg × Wdh, summed) moved this session.
+  let totalSets = 0, totalVolume = 0;
+  Object.values(state.loggedSets).forEach(arr=>{
+    arr.forEach(s=>{ if(s){ totalSets++; if(s.weight) totalVolume += s.weight * (s.reps||0); } });
+  });
+  const volumeText = totalVolume > 0 ? `, ${Math.round(totalVolume)} kg bewegt` : "";
+  toast(`Workout gespeichert — ${totalSets} Sätze${volumeText}`, "check", 3200);
   // Update 1.3.2: a really big burst at the end of the workout.
   spawnBurst(innerWidth/2, innerHeight/2, {big:true});
   state.session = null;
@@ -1015,14 +1261,28 @@ function smoothPath(coords){
   return d.trim();
 }
 function buildBigChart(points, xKey, yKey, unit){
-  const w = 320, h = 260, padL = 8, padR = 8, padT = 10, padB = 24;
+  const w = 320, h = 260, padL = 34, padR = 8, padT = 10, padB = 24;
   if(points.length === 0) return '<div class="empty-note">Noch keine Daten für diese Übung.</div>';
-  const ys = points.map(p=>p[yKey]);
+  // Update 1.4: a logged value of 0 (e.g. an unweighted/bodyweight set) used
+  // to make the line visibly dip all the way to zero, reading like a total
+  // loss of progress on a day that just didn't have a real number for this
+  // metric. Carry the last real value forward instead -- the line only
+  // moves when there's an actual new number, per feedback ("sollte nicht
+  // auf null gehen sondern bei der letzten Gewicht stehen bleiben").
+  let lastReal = null;
+  const carried = points.map(p=>{
+    let v = p[yKey];
+    if(!v){ v = lastReal; } else { lastReal = v; }
+    return Object.assign({}, p, {[yKey]: v});
+  }).filter(p => p[yKey] !== null && p[yKey] !== undefined);
+  if(carried.length === 0) return '<div class="empty-note">Noch keine Daten für diese Übung.</div>';
+
+  const ys = carried.map(p=>p[yKey]);
   let minY = Math.min(...ys), maxY = Math.max(...ys);
   if(minY === maxY){ minY -= 1; maxY += 1; }
   const rangeY = maxY - minY;
-  const stepX = points.length>1 ? (w-padL-padR)/(points.length-1) : 0;
-  const coords = points.map((p,i)=>{
+  const stepX = carried.length>1 ? (w-padL-padR)/(carried.length-1) : 0;
+  const coords = carried.map((p,i)=>{
     const x = padL + i*stepX;
     const y = padT + (h-padT-padB) - ((p[yKey]-minY)/rangeY)*(h-padT-padB);
     return [x,y];
@@ -1031,10 +1291,22 @@ function buildBigChart(points, xKey, yKey, unit){
   const areaPath = linePath + ` L${coords[coords.length-1][0].toFixed(1)},${h-padB} L${coords[0][0].toFixed(1)},${h-padB} Z`;
   const dots = coords.map((c,i)=> `<circle class="bc-dot${i===coords.length-1?' last':''}" cx="${c[0].toFixed(1)}" cy="${c[1].toFixed(1)}" r="${i===coords.length-1?5:3.2}"></circle>`).join("");
   // x-axis labels: first, middle, last
-  const labelIdx = points.length > 1 ? [0, Math.floor((points.length-1)/2), points.length-1] : [0];
+  const labelIdx = carried.length > 1 ? [0, Math.floor((carried.length-1)/2), carried.length-1] : [0];
   const uniqLabelIdx = [...new Set(labelIdx)];
-  const labels = uniqLabelIdx.map(i => `<text class="bc-xlabel" x="${coords[i][0].toFixed(1)}" y="${h-6}" text-anchor="${i===0?'start':i===points.length-1?'end':'middle'}">${fmtDate(points[i][xKey])}</text>`).join("");
+  const labels = uniqLabelIdx.map(i => `<text class="bc-xlabel" x="${coords[i][0].toFixed(1)}" y="${h-6}" text-anchor="${i===0?'start':i===carried.length-1?'end':'middle'}">${fmtDate(carried[i][xKey])}</text>`).join("");
+
+  // Update 1.4: left-side kg/wdh scale -- max/mid/min guide lines with their
+  // value labelled, so you can read off roughly where you're at without
+  // tapping a dot ("links neben dem Graph sollte man immer eine kg Skala haben").
+  const yTicks = [maxY, (maxY+minY)/2, minY];
+  const yAxis = yTicks.map(v=>{
+    const y = padT + (h-padT-padB) - ((v-minY)/rangeY)*(h-padT-padB);
+    return `<line class="bc-grid" x1="${padL}" y1="${y.toFixed(1)}" x2="${w-padR}" y2="${y.toFixed(1)}"></line>`
+      + `<text class="bc-ylabel" x="${padL-6}" y="${y.toFixed(1)}">${fmt1(v)}</text>`;
+  }).join("");
+
   return `<svg class="bigchart" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet">
+    ${yAxis}
     <line class="bc-axis" x1="${padL}" y1="${h-padB}" x2="${w-padR}" y2="${h-padB}"></line>
     <path class="bc-area" d="${areaPath}"></path>
     <path class="bc-line" d="${linePath}"></path>
@@ -1449,6 +1721,32 @@ function renderCalStrip(history){
   const DEG_PER_PX = 180 / (Math.PI * R);
   function normDeg(d){ let x = d % 360; if(x<0) x+=360; return x; }
 
+  // Update 1.4: precompute a small radial "grain" sprite once -- a soft
+  // white glow with faint speckle noise baked into its alpha channel --
+  // and stamp it onto the hand every frame instead of generating noise
+  // per-frame (would be far too slow at 60fps). Matches the chart-line
+  // grain-glow filter's "grainy, wider-reaching glow" look, per feedback
+  // ("der glow sollte grain haben und weiter strahlen").
+  const GRAIN_SIZE = 110;
+  const grainSprite = document.createElement("canvas");
+  grainSprite.width = GRAIN_SIZE; grainSprite.height = GRAIN_SIZE;
+  (function(){
+    const gctx = grainSprite.getContext("2d");
+    const grad = gctx.createRadialGradient(GRAIN_SIZE/2,GRAIN_SIZE/2,0, GRAIN_SIZE/2,GRAIN_SIZE/2,GRAIN_SIZE/2);
+    grad.addColorStop(0, "rgba(255,255,255,.85)");
+    grad.addColorStop(0.45, "rgba(255,255,255,.28)");
+    grad.addColorStop(1, "rgba(255,255,255,0)");
+    gctx.fillStyle = grad;
+    gctx.fillRect(0,0,GRAIN_SIZE,GRAIN_SIZE);
+    const imgData = gctx.getImageData(0,0,GRAIN_SIZE,GRAIN_SIZE);
+    const d = imgData.data;
+    for(let i=0;i<d.length;i+=4){
+      const n = (Math.random()-0.5) * 90;
+      d[i+3] = Math.max(0, Math.min(255, d[i+3] + n));
+    }
+    gctx.putImageData(imgData, 0, 0);
+  })();
+
   function draw(handDeg){
     ctx.clearRect(0,0,CSS_SIZE,CSS_SIZE);
     const style = getComputedStyle(document.documentElement);
@@ -1481,15 +1779,26 @@ function renderCalStrip(history){
     const tipX = cx + Math.cos(handA)*handLen, tipY = cy + Math.sin(handA)*handLen;
     const b1x = cx + Math.cos(perp)*baseHW, b1y = cy + Math.sin(perp)*baseHW;
     const b2x = cx - Math.cos(perp)*baseHW, b2y = cy - Math.sin(perp)*baseHW;
-    // Update 1.3.2: subtle white glow on the hand, matching the chart lines.
+    // Update 1.3.2/1.4: white glow on the hand, matching the chart lines --
+    // widened further in 1.4 ("weiter strahlen") plus a grainy speckled
+    // sprite stamped along the hand in "lighter" blend mode for texture.
     ctx.save();
     ctx.shadowColor = "rgba(255,255,255,.85)";
-    ctx.shadowBlur = 10;
+    ctx.shadowBlur = 16;
     ctx.beginPath();
     ctx.moveTo(b1x, b1y); ctx.lineTo(tipX, tipY); ctx.lineTo(b2x, b2y); ctx.closePath();
     ctx.fillStyle = "#ffffff"; ctx.fill();
     ctx.restore();
     ctx.strokeStyle = ink; ctx.globalAlpha = 0.5; ctx.lineWidth = 1; ctx.stroke(); ctx.globalAlpha = 1;
+
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    ctx.globalAlpha = 0.55;
+    ctx.drawImage(grainSprite, tipX - GRAIN_SIZE/2, tipY - GRAIN_SIZE/2, GRAIN_SIZE, GRAIN_SIZE);
+    ctx.globalAlpha = 0.35;
+    const midX = (cx + tipX) / 2, midY = (cy + tipY) / 2;
+    ctx.drawImage(grainSprite, midX - GRAIN_SIZE*0.4, midY - GRAIN_SIZE*0.4, GRAIN_SIZE*0.8, GRAIN_SIZE*0.8);
+    ctx.restore();
   }
 
   function secondsToLabel(s){ s = Math.max(0, Math.round(s)); return Math.floor(s/60) + ":" + String(s%60).padStart(2,"0"); }

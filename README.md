@@ -33,7 +33,7 @@ Dann im Browser: **http://127.0.0.1:8000**
 erreichst, unter `http://<Mac-LAN-IP>:8000` (LAN-IP via
 `ipconfig getifaddr en0` im Terminal).
 
-## Aufbau (Stand Update 1.3.2)
+## Aufbau (Stand Update 1.4)
 
 Ein **Lockscreen** (Logo, "nach oben wischen") kommt vor allem anderen —
 Hochwischen löst ihn in eine Wolke aus leuchtenden Pixeln auf und gibt die
@@ -42,32 +42,41 @@ App darunter frei.
 Statt einer Tab-Leiste unten gibt es kleine, feste Icons direkt auf dem
 jeweiligen Screen (im Stil des Schwesterprojekts memori-mvp):
 
-- **Workout** (Startbildschirm, Mitte) — zeigt eine Übung nach der anderen,
-  je mit Gewicht/Wdh.-Stepper und Satz-Buttons zum Abhaken (nochmal tippen
-  hakt wieder ab; jedes Abhaken blitzt kurz als kleiner Pixel-Glow auf, alle
-  3 abgehakten Sätze gibt's einen größeren). Navigation zwischen Übungen
-  über kleine Pfeile links/rechts der Punkte-Anzeige. Rudern erfasst eine
-  Dauer in Minuten statt Gewicht. Unten rechts ist immer ein "Training
-  beenden"-Button sichtbar, der beim Abschluss in einer großen
-  Pixel-Explosion endet. Der nächste Trainingstag (Push/Pull) wird
+- **Workout** (Startbildschirm, Mitte) — oben eine horizontal scrollbare
+  Übersicht aller Übungen des Trainings (Name + Häkchen bei erledigt, antippen
+  springt direkt dorthin). Pro Übung: Gewicht/Wdh.-Stepper, flankiert von
+  großen, schlichten Pfeilen zum Wechseln der Übung (auch per Wisch auf der
+  Karte), und Satz-Buttons zum Abhaken (nochmal tippen hakt wieder ab; jedes
+  Abhaken blitzt kurz als kleiner Pixel-Glow auf, alle 3 abgehakten Sätze
+  gibt's einen größeren, und ein neuer persönlicher Bestwert löst eine
+  eigene Feier aus). Sind alle Sätze einer Übung abgehakt, schaltet die App
+  automatisch zur nächsten weiter. Nach jedem Satz erscheint oben eine
+  Pause-Anzeige (überspringbar). Darunter ein **Coach**-Sprechblase mit
+  einem Tipp zur letzten Leistung bei dieser Übung oder einem motivierenden
+  Spruch — antippen zeigt einen neuen, ignorieren geht genauso. Unten rechts
+  ist immer ein "Training beenden"-Button sichtbar, der beim Abschluss eine
+  kurze Zusammenfassung (Sätze, bewegtes Gewicht) und eine große
+  Pixel-Explosion zeigt. Der nächste Trainingstag (Push/Pull) wird
   automatisch aus dem letzten abgeschlossenen Workout abgeleitet, lässt
   sich vor dem Start aber manuell umschalten. Von hier aus: Stift oben
   links = **Edit** (Trainingsplan), Uhr oben Mitte = Timer, Balken oben
   rechts = **Stats**, Personen- und Zahnrad-Icon unten = Sozial/
   Einstellungen (führen vorerst zur selben Seite).
 - **Timer** — feine Striche, kein umschließender Kreis, eine Umdrehung = 1
-  Minute, weißer Zeiger mit leichtem Glow. Mit dem Finger nach rechts
-  ziehen (von 12 Richtung 3) zieht auf, Loslassen startet den Countdown —
-  der Zeiger läuft dann linear denselben Weg zurück auf 12/0, wie bei einer
-  mechanischen Eieruhr. Bei Ablauf löst sich die Uhr kurz in eine
-  Pixel-Explosion auf.
+  Minute, weißer Zeiger mit breitem, körnigem Glow. Mit dem Finger nach
+  rechts ziehen (von 12 Richtung 3) zieht auf, Loslassen startet den
+  Countdown — der Zeiger läuft dann linear denselben Weg zurück auf 12/0,
+  wie bei einer mechanischen Eieruhr. Bei Ablauf löst sich die Uhr kurz in
+  eine Pixel-Explosion auf.
 - **Stats** — oben ein Umschalter zwischen drei Ansichten: **Progress**
   (vollflächige, vertikal swipebare Kurven — Körpergewicht zuerst, danach
-  eine abgerundete, weiß leuchtende Kurve pro Übung, x-Achse = Zeit, nur
-  Tage mit echtem Training), **Kalender** (Monatsübersicht mit Push/Pull-
-  Markierung, Pfeile zum Blättern) und **Erfolge** (Achievement-Grid, neue
-  Freischaltungen zeigen einen kurzen Pixel-Glow). Alle bisherigen
-  Trainingsdaten (aus deiner Excel-Historie) sind von Anfang an da.
+  eine abgerundete, weiß leuchtende Kurve mit körnigem Glow pro Übung, mit
+  kg/Wdh.-Skala links; ein Tag ohne Training lässt die Kurve auf dem letzten
+  Wert stehen statt auf null zu fallen, x-Achse = Zeit, nur Tage mit echtem
+  Training), **Kalender** (Monatsübersicht mit Push/Pull-Markierung, Pfeile
+  zum Blättern) und **Erfolge** (Achievement-Grid, neue Freischaltungen
+  zeigen einen kurzen Pixel-Glow). Alle bisherigen Trainingsdaten (aus
+  deiner Excel-Historie) sind von Anfang an da.
 - **Einstellungen / Sozial** (eine Seite für beide Icons) — Level/XP-Leiste,
   Streak, dein Freundes-Code zum Teilen, Freunde per Code hinzufügen,
   Rangliste nach Level/XP, Einstiegspunkte zu **Ernährung & Supplements**
@@ -76,6 +85,10 @@ jeweiligen Screen (im Stil des Schwesterprojekts memori-mvp):
   explizite Hell/Dunkel-Auswahl und die Versionsnummer ganz unten.
 - **Edit** (Übungen hinzufügen/entfernen/umsortieren) — über das Stift-Icon
   auf dem Workout-Screen erreichbar.
+
+Der Coach ist ein einfacher, regelbasierter Begleiter (feste Sprüche +
+Vergleich mit deiner letzten Leistung) — keine echte KI im Hintergrund,
+kein Chat, keine externen API-Kosten.
 
 Alle Icons sind handgezeichnete, einfarbige SVGs — keine Emojis.
 
