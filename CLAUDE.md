@@ -32,15 +32,52 @@ locally. The user commits and pushes themselves — see "Deployment" below.
 
 This Cowork cloud sandbox cannot push to GitHub directly (fixed security
 boundary, not a credentials problem — do not try to work around it with a
-token). The device-bridge shell to the user's Mac has no network access
-either. So Claude cannot push code to GitHub from either side.
+token, and never accept a GitHub token pasted into chat to work around it
+either). The device-bridge shell to the user's Mac has no network access
+either. So Claude cannot push code to GitHub from either side — this is the
+one step in the whole flow that genuinely requires the user's own machine
+with real network + their GitHub auth.
 
-The flow once the user is ready to go live:
-1. The user runs `git add -A && git commit -m "..." && git push` themselves
-   in their own Mac Terminal.
-2. They tell Claude, who triggers a Railway redeploy via the Railway MCP
-   tools (if connected in that session) — or Railway's own auto-deploy on
-   push picks it up automatically once the GitHub repo is linked.
+**Established workflow (user explicitly chose this, Update 1.3.2
+retro):** the user asked whether the whole "send files to my Mac + use
+Terminal" loop could go away entirely so they could ship from just chat +
+iPhone. Answer given and accepted: everything *except* the final `git push`
+can be — and now is — done by Claude directly via the device bridge:
+- Write the changed files straight to the right paths with
+  `device_commit_files` (needs `SendUserFile` first to get a `file_uuid`
+  for each file, then `device_commit_files` with the `devicePath`) —
+  no more asking the user to download/drag files in.
+- Run `git add -A` and `git commit` via `device_bash`, **with an explicit
+  author override** since the bridge's shell user has no git identity
+  configured: `git -c user.name="Aaron Amend" -c
+  user.email="aaronamend@MacBook-Pro-von-Aaron.local" commit -m "..."`
+  (check `git log -1 --format='%an <%ae>'` first if this identity ever
+  changes).
+- Expect noisy-but-harmless `warning: unable to unlink '...tmp_obj_...'`
+  and stale `.git/index.lock` / `.git/HEAD.lock` files from these
+  `device_bash` git operations — the bridge can't delete files (same
+  restriction as elsewhere), so git's own lock/temp-file cleanup fails
+  with "Operation not permitted" even though the actual add/commit
+  succeeds. If a *subsequent* commit fails with "Unable to create
+  .../index.lock: File exists", `mv` (not `rm`) the stale lock file out of
+  the way first, e.g. `mv .git/index.lock .git/index.lock.stale.<ts>`.
+- Only the final `git push` is left for the user — one line, in their own
+  Mac Terminal: `cd ~/Documents/bymgro && git push`. Tell them just that,
+  not the full add/commit/push sequence, since Claude already did the
+  first two.
+2. Once pushed, Railway's own auto-deploy on push picks it up automatically
+   (repo is linked) — confirm with `mcp__Railway__get-status` +
+   `mcp__Railway__get-logs` (check the `deploy` stream, not just top-level
+   status — a build can show `SUCCESS` while the container is actually
+   crash-looping, see the Railway gotchas noted elsewhere) rather than
+   assuming it worked.
+
+The user was offered an alternative (Cowork's "on your computer" mode
+instead of cloud, which might have real local network access and so might
+be able to `git push` itself too) and explicitly declined it for now in
+favor of the one-line-Terminal compromise above — don't re-propose it
+unless the user brings it up again or one of the concrete trigger
+conditions for suggesting it is actually met.
 
 ## Versioning rule
 
