@@ -118,157 +118,133 @@
   "bodyweight_kg": null,
   "sets": [
    {
-    "exercise_name": "Pull Up (Supported)",
-    "kind": "weight",
-    "set_index": 0,
-    "weight": 30.0,
-    "reps": 10.0,
-    "value_text": null
-   },
-   {
-    "exercise_name": "Pull Up (Supported)",
-    "kind": "weight",
-    "set_index": 1,
-    "weight": 30.0,
-    "reps": 8.0,
-    "value_text": null
-   },
-   {
-    "exercise_name": "Pull Up (Supported)",
-    "kind": "weight",
-    "set_index": 2,
-    "weight": 30.0,
-    "reps": 8.0,
-    "value_text": null
-   },
-   {
-    "exercise_name": "Lat Pull Down",
-    "kind": "weight",
-    "set_index": 0,
-    "weight": 30.0,
-    "reps": 12.0,
-    "value_text": null
-   },
-   {
-    "exercise_name": "Lat Pull Down",
-    "kind": "weight",
-    "set_index": 1,
-    "weight": 30.0,
-    "reps": 10.0,
-    "value_text": null
-   },
-   {
-    "exercise_name": "Lat Pull Down",
-    "kind": "weight",
-    "set_index": 2,
-    "weight": 30.0,
-    "reps": 10.0,
-    "value_text": null
-   },
-   {
-    "exercise_name": "Chest-Supported Row",
-    "kind": "weight",
-    "set_index": 0,
-    "weight": 30.0,
-    "reps": 12.0,
-    "value_text": null
-   },
-   {
-    "exercise_name": "Chest-Supported Row",
-    "kind": "weight",
-    "set_index": 1,
-    "weight": 30.0,
-    "reps": 10.0,
-    "value_text": null
-   },
-   {
-    "exercise_name": "Chest-Supported Row",
-    "kind": "weight",
-    "set_index": 2,
-    "weight": 30.0,
-    "reps": 8.0,
-    "value_text": null
-   },
-   {
-    "exercise_name": "Kabelziehen",
-    "kind": "weight",
-    "set_index": 0,
-    "weight": 12.5,
-    "reps": 12.0,
-    "value_text": null
-   },
-   {
-    "exercise_name": "Kabelziehen",
-    "kind": "weight",
-    "set_index": 1,
-    "weight": 12.5,
-    "reps": 10.0,
-    "value_text": null
-   },
-   {
-    "exercise_name": "Kabelziehen",
-    "kind": "weight",
-    "set_index": 2,
-    "weight": 12.5,
-    "reps": 10.0,
-    "value_text": null
-   },
-   {
-    "exercise_name": "Bizeps Curl",
-    "kind": "weight",
-    "set_index": 0,
-    "weight": 7.0,
-    "reps": 8.0,
-    "value_text": null
-   },
-   {
-    "exercise_name": "Bizeps Curl",
-    "kind": "weight",
-    "set_index": 1,
-    "weight": 7.0,
-    "reps": 5.0,
-    "value_text": null
-   },
-   {
-    "exercise_name": "Bizeps Curl",
-    "kind": "weight",
-    "set_index": 2,
-    "weight": 7.0,
-    "reps": 5.0,
-    "value_text": null
-   },
-   {
-    "exercise_name": "Plank",
-    "kind": "time",
-    "set_index": 0,
-    "weight": null,
-    "reps": 30.0,
-    "value_text": "30"
-   }
-  ]
- },
- {
-  "date": "2026-05-02",
-  "day_type": "push",
-  "duration_min": null,
-  "bodyweight_kg": null,
-  "sets": [
-   {
     "exercise_name": "Rudern",
     "kind": "warmup",
     "set_index": 0,
     "weight": null,
     "reps": 10.0,
     "value_text": "10min"
-   }
-  ]
- },
- {
-  "date": "2026-05-04",
-  "day_type": "pull",
-  "duration_min": null,
-  "bodyweight_kg": null,
-  "sets": [
+   },
+   {
+    "exercise_name": "Pull Up (Supported)",
+    "kind": "weight",
+    "set_index": 0,
+    "weight": 30.0,
+    "reps": 10.0,
+    "value_text": null
+   },
+   {
+    "exercise_name": "Pull Up (Supported)",
+    "kind": "weight",
+    "set_index": 1,
+    "weight": 30.0,
+    "reps": 8.0,
+    "value_text": null
+   },
+   {
+    "exercise_name": "Pull Up (Supported)",
+    "kind": "weight",
+    "set_index": 2,
+    "weight": 30.0,
+    "reps": 8.0,
+    "value_text": null
+   },
+   {
+    "exercise_name": "Lat Pull Down",
+    "kind": "weight",
+    "set_index": 0,
+    "weight": 30.0,
+    "reps": 12.0,
+    "value_text": null
+   },
+   {
+    "exercise_name": "Lat Pull Down",
+    "kind": "weight",
+    "set_index": 1,
+    "weight": 30.0,
+    "reps": 10.0,
+    "value_text": null
+   },
+   {
+    "exercise_name": "Lat Pull Down",
+    "kind": "weight",
+    "set_index": 2,
+    "weight": 30.0,
+    "reps": 10.0,
+    "value_text": null
+   },
+   {
+    "exercise_name": "Chest-Supported Row",
+    "kind": "weight",
+    "set_index": 0,
+    "weight": 30.0,
+    "reps": 12.0,
+    "value_text": null
+   },
+   {
+    "exercise_name": "Chest-Supported Row",
+    "kind": "weight",
+    "set_index": 1,
+    "weight": 30.0,
+    "reps": 10.0,
+    "value_text": null
+   },
+   {
+    "exercise_name": "Chest-Supported Row",
+    "kind": "weight",
+    "set_index": 2,
+    "weight": 30.0,
+    "reps": 8.0,
+    "value_text": null
+   },
+   {
+    "exercise_name": "Kabelziehen",
+    "kind": "weight",
+    "set_index": 0,
+    "weight": 12.5,
+    "reps": 12.0,
+    "value_text": null
+   },
+   {
+    "exercise_name": "Kabelziehen",
+    "kind": "weight",
+    "set_index": 1,
+    "weight": 12.5,
+    "reps": 10.0,
+    "value_text": null
+   },
+   {
+    "exercise_name": "Kabelziehen",
+    "kind": "weight",
+    "set_index": 2,
+    "weight": 12.5,
+    "reps": 10.0,
+    "value_text": null
+   },
+   {
+    "exercise_name": "Bizeps Curl",
+    "kind": "weight",
+    "set_index": 0,
+    "weight": 7.0,
+    "reps": 8.0,
+    "value_text": null
+   },
+   {
+    "exercise_name": "Bizeps Curl",
+    "kind": "weight",
+    "set_index": 1,
+    "weight": 7.0,
+    "reps": 5.0,
+    "value_text": null
+   },
+   {
+    "exercise_name": "Bizeps Curl",
+    "kind": "weight",
+    "set_index": 2,
+    "weight": 7.0,
+    "reps": 5.0,
+    "value_text": null
+   },
    {
     "exercise_name": "Plank",
     "kind": "time",
@@ -412,30 +388,14 @@
     "weight": 28.0,
     "reps": null,
     "value_text": null
-   }
-  ]
- },
- {
-  "date": "2026-05-08",
-  "day_type": "pull",
-  "duration_min": null,
-  "bodyweight_kg": null,
-  "sets": [
+   },
    {
     "exercise_name": "Plank",
     "kind": "time",
     "set_index": 0,
     "weight": null,
-    "reps": 45.0,
-    "value_text": "45"
-   },
-   {
-    "exercise_name": "Leg Raises or situps",
-    "kind": "reps",
-    "set_index": 0,
-    "weight": null,
-    "reps": 20.0,
-    "value_text": null
+    "reps": 30.0,
+    "value_text": "30"
    }
   ]
  },
@@ -572,15 +532,7 @@
     "weight": 5.0,
     "reps": 8.0,
     "value_text": null
-   }
-  ]
- },
- {
-  "date": "2026-05-11",
-  "day_type": "pull",
-  "duration_min": null,
-  "bodyweight_kg": null,
-  "sets": [
+   },
    {
     "exercise_name": "Plank",
     "kind": "time",
@@ -732,6 +684,22 @@
     "weight": 28.0,
     "reps": 8.0,
     "value_text": null
+   },
+   {
+    "exercise_name": "Plank",
+    "kind": "time",
+    "set_index": 0,
+    "weight": null,
+    "reps": 45.0,
+    "value_text": "45"
+   },
+   {
+    "exercise_name": "Leg Raises or situps",
+    "kind": "reps",
+    "set_index": 0,
+    "weight": null,
+    "reps": 20.0,
+    "value_text": null
    }
   ]
  },
@@ -741,6 +709,14 @@
   "duration_min": null,
   "bodyweight_kg": null,
   "sets": [
+   {
+    "exercise_name": "Rudern",
+    "kind": "warmup",
+    "set_index": 0,
+    "weight": null,
+    "reps": 5.0,
+    "value_text": "5min"
+   },
    {
     "exercise_name": "Pull Up (Supported)",
     "kind": "weight",
@@ -880,22 +856,6 @@
   ]
  },
  {
-  "date": "2026-05-13",
-  "day_type": "push",
-  "duration_min": null,
-  "bodyweight_kg": null,
-  "sets": [
-   {
-    "exercise_name": "Rudern",
-    "kind": "warmup",
-    "set_index": 0,
-    "weight": null,
-    "reps": 5.0,
-    "value_text": "5min"
-   }
-  ]
- },
- {
   "date": "2026-06-02",
   "day_type": "push",
   "duration_min": null,
@@ -1021,6 +981,14 @@
   "duration_min": null,
   "bodyweight_kg": null,
   "sets": [
+   {
+    "exercise_name": "Rudern",
+    "kind": "warmup",
+    "set_index": 0,
+    "weight": null,
+    "reps": 5.0,
+    "value_text": "5min"
+   },
    {
     "exercise_name": "Pull Up (Supported)",
     "kind": "weight",
@@ -1160,22 +1128,6 @@
   ]
  },
  {
-  "date": "2026-06-04",
-  "day_type": "push",
-  "duration_min": null,
-  "bodyweight_kg": null,
-  "sets": [
-   {
-    "exercise_name": "Rudern",
-    "kind": "warmup",
-    "set_index": 0,
-    "weight": null,
-    "reps": 5.0,
-    "value_text": "5min"
-   }
-  ]
- },
- {
   "date": "2026-06-11",
   "day_type": "pull",
   "duration_min": null,
@@ -1275,134 +1227,6 @@
     "set_index": 2,
     "weight": 10.0,
     "reps": null,
-    "value_text": null
-   },
-   {
-    "exercise_name": "Rucksack",
-    "kind": "weight",
-    "set_index": 0,
-    "weight": 40.0,
-    "reps": 12.0,
-    "value_text": null
-   },
-   {
-    "exercise_name": "Rucksack",
-    "kind": "weight",
-    "set_index": 1,
-    "weight": 40.0,
-    "reps": 10.0,
-    "value_text": null
-   },
-   {
-    "exercise_name": "Rucksack",
-    "kind": "weight",
-    "set_index": 2,
-    "weight": 40.0,
-    "reps": 8.0,
-    "value_text": null
-   }
-  ]
- },
- {
-  "date": "2026-07-11",
-  "day_type": "push",
-  "duration_min": null,
-  "bodyweight_kg": null,
-  "sets": [
-   {
-    "exercise_name": "Lat Pull Down",
-    "kind": "weight",
-    "set_index": 0,
-    "weight": 45.0,
-    "reps": 12.0,
-    "value_text": null
-   },
-   {
-    "exercise_name": "Lat Pull Down",
-    "kind": "weight",
-    "set_index": 1,
-    "weight": 45.0,
-    "reps": 10.0,
-    "value_text": null
-   },
-   {
-    "exercise_name": "Lat Pull Down",
-    "kind": "weight",
-    "set_index": 2,
-    "weight": 45.0,
-    "reps": 8.0,
-    "value_text": null
-   },
-   {
-    "exercise_name": "Chest-Supported Row",
-    "kind": "weight",
-    "set_index": 0,
-    "weight": 50.0,
-    "reps": 12.0,
-    "value_text": null
-   },
-   {
-    "exercise_name": "Chest-Supported Row",
-    "kind": "weight",
-    "set_index": 1,
-    "weight": 50.0,
-    "reps": 10.0,
-    "value_text": null
-   },
-   {
-    "exercise_name": "Chest-Supported Row",
-    "kind": "weight",
-    "set_index": 2,
-    "weight": 50.0,
-    "reps": 8.0,
-    "value_text": null
-   },
-   {
-    "exercise_name": "Kabelziehen",
-    "kind": "weight",
-    "set_index": 0,
-    "weight": 20.0,
-    "reps": 12.0,
-    "value_text": null
-   },
-   {
-    "exercise_name": "Kabelziehen",
-    "kind": "weight",
-    "set_index": 1,
-    "weight": 20.0,
-    "reps": 10.0,
-    "value_text": null
-   },
-   {
-    "exercise_name": "Kabelziehen",
-    "kind": "weight",
-    "set_index": 2,
-    "weight": 20.0,
-    "reps": 8.0,
-    "value_text": null
-   },
-   {
-    "exercise_name": "Bizeps Curl",
-    "kind": "weight",
-    "set_index": 0,
-    "weight": 10.0,
-    "reps": 12.0,
-    "value_text": null
-   },
-   {
-    "exercise_name": "Bizeps Curl",
-    "kind": "weight",
-    "set_index": 1,
-    "weight": 10.0,
-    "reps": 10.0,
-    "value_text": null
-   },
-   {
-    "exercise_name": "Bizeps Curl",
-    "kind": "weight",
-    "set_index": 2,
-    "weight": 10.0,
-    "reps": 8.0,
     "value_text": null
    },
    {
@@ -1537,110 +1361,6 @@
  },
  {
   "date": "2026-07-18",
-  "day_type": "pull",
-  "duration_min": null,
-  "bodyweight_kg": null,
-  "sets": [
-   {
-    "exercise_name": "Pull Up (Supported)",
-    "kind": "weight",
-    "set_index": 0,
-    "weight": 21.0,
-    "reps": 10.0,
-    "value_text": null
-   },
-   {
-    "exercise_name": "Pull Up (Supported)",
-    "kind": "weight",
-    "set_index": 1,
-    "weight": 21.0,
-    "reps": 6.0,
-    "value_text": null
-   },
-   {
-    "exercise_name": "Pull Up (Supported)",
-    "kind": "weight",
-    "set_index": 2,
-    "weight": 21.0,
-    "reps": null,
-    "value_text": null
-   },
-   {
-    "exercise_name": "Lat Pull Down",
-    "kind": "weight",
-    "set_index": 0,
-    "weight": 45.0,
-    "reps": 6.0,
-    "value_text": null
-   },
-   {
-    "exercise_name": "Lat Pull Down",
-    "kind": "weight",
-    "set_index": 1,
-    "weight": 45.0,
-    "reps": null,
-    "value_text": null
-   },
-   {
-    "exercise_name": "Lat Pull Down",
-    "kind": "weight",
-    "set_index": 2,
-    "weight": 45.0,
-    "reps": null,
-    "value_text": null
-   },
-   {
-    "exercise_name": "Chest-Supported Row",
-    "kind": "weight",
-    "set_index": 0,
-    "weight": 50.0,
-    "reps": 12.0,
-    "value_text": null
-   },
-   {
-    "exercise_name": "Chest-Supported Row",
-    "kind": "weight",
-    "set_index": 1,
-    "weight": 50.0,
-    "reps": 10.0,
-    "value_text": null
-   },
-   {
-    "exercise_name": "Chest-Supported Row",
-    "kind": "weight",
-    "set_index": 2,
-    "weight": 50.0,
-    "reps": 10.0,
-    "value_text": null
-   },
-   {
-    "exercise_name": "Kabelziehen",
-    "kind": "weight",
-    "set_index": 0,
-    "weight": 20.0,
-    "reps": null,
-    "value_text": null
-   },
-   {
-    "exercise_name": "Kabelziehen",
-    "kind": "weight",
-    "set_index": 1,
-    "weight": 20.0,
-    "reps": null,
-    "value_text": null
-   },
-   {
-    "exercise_name": "Kabelziehen",
-    "kind": "weight",
-    "set_index": 2,
-    "weight": 20.0,
-    "reps": null,
-    "value_text": null
-   }
-  ]
- },
- {
-  "date": "2026-07-18",
   "day_type": "push",
   "duration_min": null,
   "bodyweight_kg": null,
@@ -1715,6 +1435,102 @@
     "set_index": 2,
     "weight": 10.0,
     "reps": 8.0,
+    "value_text": null
+   },
+   {
+    "exercise_name": "Pull Up (Supported)",
+    "kind": "weight",
+    "set_index": 0,
+    "weight": 21.0,
+    "reps": 10.0,
+    "value_text": null
+   },
+   {
+    "exercise_name": "Pull Up (Supported)",
+    "kind": "weight",
+    "set_index": 1,
+    "weight": 21.0,
+    "reps": 6.0,
+    "value_text": null
+   },
+   {
+    "exercise_name": "Pull Up (Supported)",
+    "kind": "weight",
+    "set_index": 2,
+    "weight": 21.0,
+    "reps": null,
+    "value_text": null
+   },
+   {
+    "exercise_name": "Lat Pull Down",
+    "kind": "weight",
+    "set_index": 0,
+    "weight": 45.0,
+    "reps": 6.0,
+    "value_text": null
+   },
+   {
+    "exercise_name": "Lat Pull Down",
+    "kind": "weight",
+    "set_index": 1,
+    "weight": 45.0,
+    "reps": null,
+    "value_text": null
+   },
+   {
+    "exercise_name": "Lat Pull Down",
+    "kind": "weight",
+    "set_index": 2,
+    "weight": 45.0,
+    "reps": null,
+    "value_text": null
+   },
+   {
+    "exercise_name": "Chest-Supported Row",
+    "kind": "weight",
+    "set_index": 0,
+    "weight": 50.0,
+    "reps": 12.0,
+    "value_text": null
+   },
+   {
+    "exercise_name": "Chest-Supported Row",
+    "kind": "weight",
+    "set_index": 1,
+    "weight": 50.0,
+    "reps": 10.0,
+    "value_text": null
+   },
+   {
+    "exercise_name": "Chest-Supported Row",
+    "kind": "weight",
+    "set_index": 2,
+    "weight": 50.0,
+    "reps": 10.0,
+    "value_text": null
+   },
+   {
+    "exercise_name": "Kabelziehen",
+    "kind": "weight",
+    "set_index": 0,
+    "weight": 20.0,
+    "reps": null,
+    "value_text": null
+   },
+   {
+    "exercise_name": "Kabelziehen",
+    "kind": "weight",
+    "set_index": 1,
+    "weight": 20.0,
+    "reps": null,
+    "value_text": null
+   },
+   {
+    "exercise_name": "Kabelziehen",
+    "kind": "weight",
+    "set_index": 2,
+    "weight": 20.0,
+    "reps": null,
     "value_text": null
    }
   ]
@@ -1918,6 +1734,14 @@
   "bodyweight_kg": null,
   "sets": [
    {
+    "exercise_name": "Rudern",
+    "kind": "warmup",
+    "set_index": 0,
+    "weight": null,
+    "reps": 10.0,
+    "value_text": "10min"
+   },
+   {
     "exercise_name": "Pull Up (Supported)",
     "kind": "weight",
     "set_index": 0,
@@ -2044,22 +1868,6 @@
     "weight": null,
     "reps": 35.0,
     "value_text": "35"
-   }
-  ]
- },
- {
-  "date": "2026-08-06",
-  "day_type": "push",
-  "duration_min": null,
-  "bodyweight_kg": null,
-  "sets": [
-   {
-    "exercise_name": "Rudern",
-    "kind": "warmup",
-    "set_index": 0,
-    "weight": null,
-    "reps": 10.0,
-    "value_text": "10min"
    }
   ]
  }

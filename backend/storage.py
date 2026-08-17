@@ -142,6 +142,14 @@ CREATE TABLE IF NOT EXISTS auth_credentials (
     user_id TEXT NOT NULL,
     created_at TEXT NOT NULL
 );
+
+-- Update 1.7.1: tiny generic key/value marker table for one-off, run-once
+-- data-correction migrations (see _fix_aamend_history_v2()) -- cheaper than
+-- adding a dedicated boolean column for every future one-time fix.
+CREATE TABLE IF NOT EXISTS seed_meta (
+    key TEXT PRIMARY KEY,
+    value TEXT
+);
 """
 
 
@@ -179,6 +187,7 @@ def _migrate(conn: sqlite3.Connection):
 
     _fix_session_sets_fk(conn)
     _seed_aamend_account(conn)
+    _fix_aamend_history_v2(conn)
 
 
 def _fix_session_sets_fk(conn: sqlite3.Connection):
@@ -314,29 +323,87 @@ def _seed_aamend_account(conn: sqlite3.Connection):
     has_sessions = conn.execute(
         "SELECT 1 FROM workout_sessions WHERE user_id=? LIMIT 1", (AAMEND_USER_ID,)
     ).fetchone()
-    if not has_sessions and SEED_AAMEND_HISTORY_PATH.exists():
-        try:
-            history = json.loads(SEED_AAMEND_HISTORY_PATH.read_text(encoding="utf-8"))
-        except (OSError, ValueError):
-            history = []
-        for sess in history:
-            cur = conn.execute(
-                """INSERT INTO workout_sessions (user_id, date, day_type, duration_min, bodyweight_kg, created_at, finished)
-                   VALUES (?,?,?,?,?,datetime('now'),1)""",
-                (AAMEND_USER_ID, sess["date"], sess["day_type"], sess.get("duration_min"), sess.get("bodyweight_kg")),
+    if not has_sessions:
+        _import_aamend_history(conn)
+
+
+def _import_aamend_history(conn: sqlite3.Connection):
+    """Shared by _seed_aamend_account() (fresh install) and
+    _fix_aamend_history_v2() (correcting an already-seeded prod DB) --
+    inserts every session in seed_aamend_history.json for AAMEND_USER_ID."""
+    if not SEED_AAMEND_HISTORY_PATH.exists():
+        return
+    try:
+        history = json.loads(SEED_AAMEND_HISTORY_PATH.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        history = []
+    for sess in history:
+        cur = conn.execute(
+            """INSERT INTO workout_sessions (user_id, date, day_type, duration_min, bodyweight_kg, created_at, finished)
+               VALUES (?,?,?,?,?,datetime('now'),1)""",
+            (AAMEND_USER_ID, sess["date"], sess["day_type"], sess.get("duration_min"), sess.get("bodyweight_kg")),
+        )
+        sid = cur.lastrowid
+        for s in sess.get("sets", []):
+            conn.execute(
+                """INSERT INTO session_sets (session_id, exercise_name, set_index, weight, reps, value_text, logged)
+                   VALUES (?,?,?,?,?,?,1)""",
+                (sid, s["exercise_name"], s["set_index"], s.get("weight"), s.get("reps"), s.get("value_text")),
             )
-            sid = cur.lastrowid
-            for s in sess.get("sets", []):
-                conn.execute(
-                    """INSERT INTO session_sets (session_id, exercise_name, set_index, weight, reps, value_text, logged)
-                       VALUES (?,?,?,?,?,?,1)""",
-                    (sid, s["exercise_name"], s["set_index"], s.get("weight"), s.get("reps"), s.get("value_text")),
-                )
-            if sess.get("bodyweight_kg") is not None:
-                conn.execute(
-                    "INSERT INTO bodyweight_log (user_id, date, kg) VALUES (?,?,?)",
-                    (AAMEND_USER_ID, sess["date"], sess["bodyweight_kg"]),
-                )
+        if sess.get("bodyweight_kg") is not None:
+            conn.execute(
+                "INSERT INTO bodyweight_log (user_id, date, kg) VALUES (?,?,?)",
+                (AAMEND_USER_ID, sess["date"], sess["bodyweight_kg"]),
+            )
+
+
+# Update 1.7.1: the very first Excel import (Update 1.6) had two real bugs
+# in how it read "NO SKINNY FAT PLS.xlsx" -- (1) a stray junk date typed
+# into an ordinary weight/reps cell elsewhere in the sheet got misread as
+# an extra block header, which mis-labelled a batch of real Pull sets as
+# "push"; (2) every date got split into a separate push *and* pull session
+# whenever the shared Rudern warmup (which structurally lives in the sheet's
+# push section) had a value, even on days that were purely Pull -- so most
+# imported days showed up as a real session plus a bogus near-empty
+# "push: just Rudern" twin. Both are fixed in the current
+# seed_aamend_history.json (single session per real training day, Rudern/
+# Plank/Leg-Raises no longer vote on day-type). This list is the exact
+# (date, day_type) signature of the OLD, wrong 23-row seed -- used to
+# delete precisely those rows (and only those) before re-importing the
+# corrected 14, so anything the user has logged for real in the meantime
+# (any date/day_type combo not in this exact list) is left untouched.
+_AAMEND_HISTORY_V1_BAD_ROWS = [
+    ("2026-04-30", "push"), ("2026-05-02", "pull"), ("2026-05-02", "push"),
+    ("2026-05-04", "pull"), ("2026-05-04", "push"), ("2026-05-08", "pull"),
+    ("2026-05-08", "push"), ("2026-05-11", "pull"), ("2026-05-11", "push"),
+    ("2026-05-13", "pull"), ("2026-05-13", "push"), ("2026-06-02", "push"),
+    ("2026-06-04", "pull"), ("2026-06-04", "push"), ("2026-06-11", "pull"),
+    ("2026-07-11", "push"), ("2026-07-16", "push"), ("2026-07-18", "pull"),
+    ("2026-07-18", "push"), ("2026-08-01", "pull"), ("2026-08-03", "push"),
+    ("2026-08-06", "pull"), ("2026-08-06", "push"),
+]
+
+
+def _fix_aamend_history_v2(conn: sqlite3.Connection):
+    if not conn.execute("SELECT 1 FROM auth_credentials WHERE username='aamend'").fetchone():
+        return  # _seed_aamend_account() hasn't even run yet -- nothing to fix
+    if conn.execute("SELECT 1 FROM seed_meta WHERE key='aamend_history_v2'").fetchone():
+        return  # already fixed
+    for date, day_type in _AAMEND_HISTORY_V1_BAD_ROWS:
+        rows = conn.execute(
+            "SELECT id FROM workout_sessions WHERE user_id=? AND date=? AND day_type=?",
+            (AAMEND_USER_ID, date, day_type),
+        ).fetchall()
+        for r in rows:
+            conn.execute("DELETE FROM session_sets WHERE session_id=?", (r["id"],))
+            conn.execute("DELETE FROM workout_sessions WHERE id=?", (r["id"],))
+    bad_dates = {d for d, _ in _AAMEND_HISTORY_V1_BAD_ROWS}
+    for d in bad_dates:
+        conn.execute("DELETE FROM bodyweight_log WHERE user_id=? AND date=?", (AAMEND_USER_ID, d))
+    _import_aamend_history(conn)
+    conn.execute(
+        "INSERT INTO seed_meta (key, value) VALUES ('aamend_history_v2', datetime('now'))"
+    )
 
 
 def gen_code() -> str:
