@@ -187,12 +187,17 @@
   .exercise-muscle { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .05em; opacity: .7; }
   .exercise-name { font-size: 25px; font-weight: 700; margin: 2px 0; }
 
-  .stepper-row { display:flex; align-items:center; justify-content:center; gap: 16px; margin-top: 18px; }
-  .stepper-btn { width: 50px; height: 50px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel); color: var(--ink); font-size: 22px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition: transform .1s ease; }
-  .stepper-btn:active { transform: scale(.88); }
+  /* ---------- Update 1.8: horizontal drag wheel replacing +/- steppers ----------
+     "an einem horizontalen Rad drehen nicht + und - druecken": lets you land
+     on any 0.1 value (e.g. 16.5), which fixed-1.25/whole-unit +/- taps never
+     could (that was the literal "Incline Benchpress kann man nicht auf 14
+     stellen" bug: 14 simply isn't a multiple of the old 1.25 step). */
+  .wheel-group { display:flex; flex-direction:column; align-items:center; gap: 6px; margin-top: 14px; }
   .stepper-value { min-width: 100px; text-align:center; }
   .stepper-value .num { font-size: 38px; font-weight: 800; line-height: 1; }
   .stepper-value .unit { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+  .wheel-canvas { width: 240px; height: 46px; touch-action: none; cursor: grab; }
+  .wheel-canvas:active { cursor: grabbing; }
 
   .set-pills { display:flex; gap: 10px; margin-top: 22px; }
   .set-pill { width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--line); display:flex; align-items:center; justify-content:center; font-size: 14px; font-weight:700; color: var(--muted); cursor: pointer; background: none; transition: all .15s ease; }
@@ -209,9 +214,12 @@
   .ex-chip.done { color: var(--accent); border-color: var(--accent); }
   .ex-chip .chip-check { width:12px; height:12px; flex-shrink:0; }
 
-  /* ---------- Update 1.4: big plain arrows flanking the steppers (was small circle buttons up by the dots) ---------- */
-  .ex-switch-row { display:flex; align-items:center; justify-content:center; gap: 4px; width:100%; }
-  .big-arrow { background:none; border:none; color: var(--ink); width: 48px; height: 64px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; opacity:.8; transition: transform .12s ease, opacity .12s ease; }
+  /* ---------- Update 1.8: big plain arrows now stacked above/below the
+     steppers (prev = up, next = down) instead of flanking left/right:
+     "man geht zur naechsten Uebung nach unten weiter", not sideways. Same
+     DOM order (prev, stepper-col, next) just needed flex-direction:column. ---------- */
+  .ex-switch-row { display:flex; flex-direction:column; align-items:center; justify-content:center; gap: 2px; width:100%; }
+  .big-arrow { background:none; border:none; color: var(--ink); width: 64px; height: 40px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; opacity:.8; transition: transform .12s ease, opacity .12s ease; }
   .big-arrow svg { width: 32px; height: 32px; }
   .big-arrow:active { transform: scale(.82); opacity:1; }
   .big-arrow:disabled { opacity: .18; }
@@ -223,10 +231,6 @@
   .coach-bubble .ci { width:16px; height:16px; flex-shrink:0; margin-top:1px; color: var(--accent); }
   .coach-bubble.hidden { display:none; }
 
-  /* ---------- Update 1.4: auto rest-timer chip after logging a set ---------- */
-  .rest-chip { position:absolute; top:10px; left:50%; transform: translateX(-50%); display:flex; align-items:center; gap:8px; background: var(--ink); color: var(--on-ink); padding: 8px 14px; border-radius: 999px; font-size: 12.5px; font-weight:700; z-index: 40; box-shadow: 0 6px 18px rgba(0,0,0,.25); opacity:0; pointer-events:none; transition: opacity .2s ease, transform .2s ease; }
-  .rest-chip.show { opacity:1; pointer-events:auto; transform: translateX(-50%) translateY(0); }
-  .rest-chip button { background:none; border:none; color: var(--on-ink); opacity:.7; font-size: 11px; cursor:pointer; padding:2px 4px; }
 
   .card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 16px; margin-bottom: 12px; }
   .field { display:flex; flex-direction:column; gap:6px; margin-bottom: 14px; }
@@ -459,12 +463,6 @@
         </div>
 
         <div id="workout-active" style="display:none;flex:1;flex-direction:column;min-height:0;position:relative;">
-          <!-- Update 1.4: rest-timer chip, floats in when a set is logged. -->
-          <div class="rest-chip" id="rest-chip">
-            <span id="rest-chip-icon"></span><span id="rest-chip-label">Pause 1:30</span>
-            <button id="rest-chip-skip">Überspringen</button>
-          </div>
-
           <!-- Update 1.4: whole-workout overview strip (exercise names, not
                just dots -- "die Punkte reichen nicht"), tap any chip to jump. -->
           <div class="ex-overview" id="ex-overview"></div>
@@ -479,15 +477,13 @@
             <div class="ex-switch-row">
               <button class="big-arrow" id="prev-ex-btn" title="Vorherige Übung"></button>
               <div class="stepper-col">
-                <div id="weight-stepper" class="stepper-row">
-                  <button class="stepper-btn" id="w-minus">−</button>
+                <div id="weight-stepper" class="wheel-group">
                   <div class="stepper-value"><div class="num" id="w-val">0</div><div class="unit" id="w-unit">kg</div></div>
-                  <button class="stepper-btn" id="w-plus">+</button>
+                  <canvas id="w-wheel" class="wheel-canvas"></canvas>
                 </div>
-                <div id="reps-stepper" class="stepper-row" style="margin-top:8px;">
-                  <button class="stepper-btn" id="r-minus">−</button>
+                <div id="reps-stepper" class="wheel-group">
                   <div class="stepper-value"><div class="num" id="r-val">0</div><div class="unit" id="r-unit">wdh</div></div>
-                  <button class="stepper-btn" id="r-plus">+</button>
+                  <canvas id="r-wheel" class="wheel-canvas"></canvas>
                 </div>
               </div>
               <button class="big-arrow" id="next-ex-btn" title="Nächste Übung"></button>
@@ -706,7 +702,7 @@
 </div>
 
 <script>
-const APP_VERSION = "1.7.1";
+const APP_VERSION = "1.8";
 document.getElementById("app-version-line").textContent = "bymgro v" + APP_VERSION;
 
 /* ================= ICONS (monochrome, currentColor) ================= */
@@ -721,6 +717,8 @@ const ICONS = {
   chevLeft: '<svg class="ic" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>',
   chevRight: '<svg class="ic" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>',
   chevBack: '<svg class="ic" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>',
+  chevUp: '<svg class="ic" viewBox="0 0 24 24"><path d="M5 15l7-7 7 7"/></svg>',
+  chevDown: '<svg class="ic" viewBox="0 0 24 24"><path d="M5 9l7 7 7-7"/></svg>',
   pause: '<svg class="ic" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>',
   flagCheck: '<svg class="ic" viewBox="0 0 24 24"><path d="M6 3v18"/><path d="M6 4h12l-2.5 3.5L18 11H6"/></svg>',
   moon: '<svg class="ic" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/></svg>',
@@ -744,10 +742,9 @@ document.querySelectorAll("[data-icon]").forEach(el => el.innerHTML = ic(el.data
 
 function setIcon(id, name){ const el = document.getElementById(id); if(el) el.innerHTML = ic(name); }
 setIcon("plan-edit-btn","pencil");
-setIcon("prev-ex-btn","chevLeft");
-setIcon("next-ex-btn","chevRight");
+setIcon("prev-ex-btn","chevUp");
+setIcon("next-ex-btn","chevDown");
 setIcon("finish-pill-icon","flagCheck");
-setIcon("rest-chip-icon","pause");
 setIcon("coach-icon","sparkle");
 setIcon("plan-close-btn","close");
 setIcon("nutrition-close-btn","close");
@@ -996,8 +993,6 @@ async function bootstrap(){
 /* ================= WORKOUT ================= */
 const state = { plan: null, nextDayType: "push", session: null, exIndex: 0, loggedSets: {}, weight: 0, reps: 0,
   progressData: null, prBests: {} };
-const WEIGHT_STEP = 1.25;
-
 function todayLabel(){ return new Date().toLocaleDateString("de-DE", {weekday:"long", day:"numeric", month:"long"}); }
 $("workout-date").textContent = todayLabel();
 
@@ -1023,7 +1018,6 @@ $("start-btn").addEventListener("click", async ()=>{
   state.exIndex = 0;
   state.loggedSets = {};
   resp.exercises.forEach(ex => state.loggedSets[ex.name] = new Array(ex.target_sets).fill(null));
-  cancelRestTimer();
   state.prBests = {};
   // Update 1.4: loaded once per workout so the AI-coach tips and PR
   // detection have real history to compare against, without refetching on
@@ -1037,6 +1031,23 @@ $("start-btn").addEventListener("click", async ()=>{
 
 function currentExercise(){ return state.session.exercises[state.exIndex]; }
 
+// Update 1.8: per-set-index reps memory helpers.
+function repsBySet(ex){
+  try{ return ex.last_reps_by_set ? JSON.parse(ex.last_reps_by_set) : {}; }
+  catch(e){ return {}; }
+}
+function nextSetIndexFor(ex){
+  const sets = state.loggedSets[ex.name] || [];
+  const idx = sets.findIndex(s => s === null);
+  return idx === -1 ? Math.max(0, sets.length - 1) : idx;
+}
+function defaultRepsFor(ex, setIndex){
+  const bySet = repsBySet(ex);
+  if(bySet[setIndex] !== undefined) return bySet[setIndex];
+  if(ex.last_reps) return ex.last_reps;
+  return ex.kind==="reps" ? 10 : ex.kind==="time" ? 30 : ex.kind==="warmup" ? 10 : 8;
+}
+
 function renderExercise(){
   const ex = currentExercise();
   $("ex-muscle").textContent = ex.muscle || (ex.kind==="warmup" ? "Aufwärmen" : "");
@@ -1047,19 +1058,25 @@ function renderExercise(){
   $("reps-stepper").style.display = "flex";
 
   state.weight = ex.last_weight || 0;
-  state.reps = ex.last_reps || (ex.kind==="reps" ? 10 : ex.kind==="time" ? 30 : ex.kind==="warmup" ? 10 : 8);
+  // Update 1.8: default reps comes from whatever was remembered for the
+  // next not-yet-logged set index (set 1 is usually higher reps than set
+  // 3 in a pyramid), instead of one shared last_reps value for the whole
+  // exercise.
+  state.reps = defaultRepsFor(ex, nextSetIndexFor(ex));
 
   $("w-val").textContent = fmt1(state.weight);
   $("w-unit").textContent = ex.unit;
   $("r-val").textContent = fmt1(state.reps);
   $("r-unit").textContent = ex.kind === "time" ? "sek" : (ex.kind === "warmup" ? "min" : "wdh");
+  weightWheel.setValue(state.weight, false);
+  repsWheel.setValue(state.reps, false);
 
   renderSetPills();
   renderOverview();
   renderCoach();
   $("prev-ex-btn").disabled = state.exIndex === 0;
   const isLast = state.exIndex === state.session.exercises.length - 1;
-  setIcon("next-ex-btn", isLast ? "flagCheck" : "chevRight");
+  setIcon("next-ex-btn", isLast ? "flagCheck" : "chevDown");
 }
 
 /* Update 1.4: whole-workout overview strip (exercise names, not just dots
@@ -1116,6 +1133,17 @@ function toggleSet(setIndex){
   else if(ex.kind === "warmup"){ payload.value_text = state.reps + "min"; payload.reps = state.reps; }
   state.loggedSets[ex.name][setIndex] = already ? null : payload;
   api(`/api/workout/${state.session.session_id}/set`, {method:"POST", body: JSON.stringify(payload)}).catch(()=>toast("Konnte nicht speichern"));
+
+  // Update 1.8: keep this set index's reps in the exercise's own local
+  // memory so the wheel default for the next set updates immediately,
+  // without waiting on a round trip to the server.
+  if(!already && payload.reps !== undefined){
+    const bySet = repsBySet(ex);
+    bySet[setIndex] = payload.reps;
+    ex.last_reps_by_set = JSON.stringify(bySet);
+    ex.last_reps = payload.reps;
+  }
+
   renderSetPills();
   renderOverview();
   const pills = document.querySelectorAll(".set-pill");
@@ -1153,13 +1181,16 @@ function toggleSet(setIndex){
     }
   }
 
-  // Update 1.4: auto rest-timer after a logged set, like other gym apps --
-  // skipped only if this was the very last set of the very last exercise
-  // (the workout's basically over, no rest needed).
+  // Update 1.8: the automatic rest timer after every logged set (Update 1.4)
+  // was removed per feedback: no more auto-triggered pause countdown.
   const isLastExOfPlan = state.exIndex === state.session.exercises.length - 1;
   const allDoneNow = state.loggedSets[ex.name].every(s=>s!==null);
-  if(!(isLastExOfPlan && allDoneNow)){
-    startRestTimer(ex.kind === "weight" ? 90 : 45);
+
+  // Show the remembered reps for whichever set is next in line.
+  if(!allDoneNow){
+    state.reps = defaultRepsFor(ex, nextSetIndexFor(ex));
+    $("r-val").textContent = fmt1(state.reps);
+    repsWheel.setValue(state.reps, false);
   }
 
   // Update 1.4: auto-advance once every set for this exercise is logged --
@@ -1173,7 +1204,7 @@ function toggleSet(setIndex){
       if(state.exIndex === exIndexAtSchedule && state.loggedSets[exNameAtSchedule].every(s=>s!==null)){
         state.exIndex++;
         renderExercise();
-        toast(`Weiter: ${state.session.exercises[state.exIndex].name.replace(" (Supported)","")}`, "chevRight");
+        toast(`Weiter: ${state.session.exercises[state.exIndex].name.replace(" (Supported)","")}`, "chevDown");
       }
     }, isPR ? 1000 : 650);
   }
@@ -1181,31 +1212,107 @@ function toggleSet(setIndex){
   renderCoach();
 }
 
-$("w-minus").addEventListener("click", ()=>{ state.weight = Math.max(0, state.weight - WEIGHT_STEP); $("w-val").textContent = fmt1(state.weight); });
-$("w-plus").addEventListener("click", ()=>{ state.weight = state.weight + WEIGHT_STEP; $("w-val").textContent = fmt1(state.weight); });
-$("r-minus").addEventListener("click", ()=>{ state.reps = Math.max(0, state.reps - 1); $("r-val").textContent = fmt1(state.reps); });
-$("r-plus").addEventListener("click", ()=>{ state.reps = state.reps + 1; $("r-val").textContent = fmt1(state.reps); });
+/* Update 1.8: horizontal drag wheel replacing the old +/- stepper buttons.
+   Same convention as the wind-up timer (dragging right increases the
+   value). Weight moves in 0.1 steps so any exact value, e.g. 14 or 16.5,
+   is always reachable. Reps move in whole steps. */
+function makeWheel(canvasId, opts){
+  const canvas = $(canvasId);
+  const ctx = canvas.getContext("2d");
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const PX_PER_STEP = 16;
+  let W = 0, H = 0, value = opts.min, dragging = false, lastX = 0;
 
-/* ================= Update 1.4: auto rest-timer chip ================= */
-let restRafId = null, restEndTs = 0;
-function startRestTimer(seconds){
-  cancelRestTimer();
-  restEndTs = performance.now() + seconds*1000;
-  $("rest-chip").classList.add("show");
-  const tick = ()=>{
-    const remain = Math.max(0, Math.round((restEndTs - performance.now())/1000));
-    $("rest-chip-label").textContent = "Pause " + Math.floor(remain/60) + ":" + String(remain%60).padStart(2,"0");
-    if(remain <= 0){ cancelRestTimer(); if(navigator.vibrate) navigator.vibrate([80,50,80]); return; }
-    restRafId = requestAnimationFrame(tick);
-  };
-  tick();
+  function resize(){
+    const rect = canvas.getBoundingClientRect();
+    W = rect.width; H = rect.height;
+    canvas.width = W * dpr; canvas.height = H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    draw();
+  }
+
+  function draw(){
+    ctx.clearRect(0, 0, W, H);
+    const cs = getComputedStyle(document.documentElement);
+    const ink = cs.getPropertyValue("--ink").trim() || "#111";
+    const muted = cs.getPropertyValue("--muted").trim() || "#999";
+    const accent = cs.getPropertyValue("--accent").trim() || "#e08a3c";
+    const midY = H / 2;
+    const centerX = W / 2;
+    const stepsFromZero = value / opts.step;
+    const offsetPx = (stepsFromZero % 1) * PX_PER_STEP;
+    const baseStep = Math.round(stepsFromZero - (stepsFromZero % 1));
+    for(let i = -8; i <= 8; i++){
+      const x = centerX + i * PX_PER_STEP - offsetPx;
+      if(x < 0 || x > W) continue;
+      const absStep = baseStep + i;
+      if(opts.min !== undefined && absStep * opts.step < opts.min - 1e-6) continue;
+      const isMajor = absStep % 5 === 0;
+      const h = isMajor ? 16 : 9;
+      ctx.strokeStyle = isMajor ? ink : muted;
+      ctx.globalAlpha = isMajor ? 0.85 : 0.4;
+      ctx.lineWidth = isMajor ? 2 : 1;
+      ctx.beginPath();
+      ctx.moveTo(x, midY - h / 2);
+      ctx.lineTo(x, midY + h / 2);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = accent;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(centerX, midY - 20);
+    ctx.lineTo(centerX, midY + 20);
+    ctx.stroke();
+  }
+
+  function setValue(v, fire){
+    let nv = Math.round(v / opts.step) * opts.step;
+    nv = Math.round(nv * 100) / 100;
+    if(opts.min !== undefined) nv = Math.max(opts.min, nv);
+    value = nv;
+    draw();
+    if(fire !== false && opts.onChange) opts.onChange(value);
+  }
+
+  function pointFromEvent(e){
+    const rect = canvas.getBoundingClientRect();
+    const t = (e.touches && e.touches[0]) ? e.touches[0] : e;
+    return { x: t.clientX - rect.left };
+  }
+
+  function onDown(e){
+    dragging = true;
+    lastX = pointFromEvent(e).x;
+    e.preventDefault();
+  }
+  function onMove(e){
+    if(!dragging) return;
+    const x = pointFromEvent(e).x;
+    const dx = x - lastX;
+    lastX = x;
+    setValue(value + (dx / PX_PER_STEP) * opts.step);
+    e.preventDefault();
+  }
+  function onUp(){ dragging = false; }
+
+  canvas.addEventListener("pointerdown", onDown);
+  canvas.addEventListener("pointermove", onMove);
+  window.addEventListener("pointerup", onUp);
+  canvas.addEventListener("touchstart", onDown, {passive:false});
+  canvas.addEventListener("touchmove", onMove, {passive:false});
+  window.addEventListener("touchend", onUp);
+  window.addEventListener("resize", resize);
+  resize();
+
+  return { setValue };
 }
-function cancelRestTimer(){
-  if(restRafId) cancelAnimationFrame(restRafId);
-  restRafId = null;
-  $("rest-chip").classList.remove("show");
-}
-$("rest-chip-skip").addEventListener("click", (e)=>{ e.stopPropagation(); cancelRestTimer(); });
+
+const weightWheel = makeWheel("w-wheel", { step: 0.1, min: 0,
+  onChange: (v)=>{ state.weight = v; $("w-val").textContent = fmt1(v); } });
+const repsWheel = makeWheel("r-wheel", { step: 1, min: 0,
+  onChange: (v)=>{ state.reps = v; $("r-val").textContent = fmt1(v); } });
+
 
 /* ================= Update 1.4: AI-coach bubble under the set pills =================
    Always shows something -- a progress-aware tip when there's real history for the
@@ -1281,7 +1388,6 @@ $("finish-workout-btn").addEventListener("click", finishWorkout);
 async function finishWorkout(){
   const bwStr = prompt("Aktuelles Körpergewicht in kg (optional, Enter zum Überspringen):", "");
   const bw = bwStr && !isNaN(parseFloat(bwStr)) ? parseFloat(bwStr) : null;
-  cancelRestTimer();
   const result = await api(`/api/workout/${state.session.session_id}/finish`, {method:"POST", body: JSON.stringify({bodyweight_kg: bw})});
   // Update 1.4: a real summary instead of just "Workout gespeichert" -- sets
   // logged + total volume (kg × Wdh, summed) moved this session.

@@ -55,7 +55,8 @@ CREATE TABLE IF NOT EXISTS plan_exercises (
     target_sets INTEGER NOT NULL DEFAULT 3,
     unit TEXT NOT NULL DEFAULT 'kg',
     last_weight REAL,
-    last_reps REAL
+    last_reps REAL,
+    last_reps_by_set TEXT
 );
 
 CREATE TABLE IF NOT EXISTS workout_sessions (
@@ -185,9 +186,17 @@ def _migrate(conn: sqlite3.Connection):
     if "logged" not in cols:
         conn.execute("ALTER TABLE session_sets ADD COLUMN logged INTEGER NOT NULL DEFAULT 1")
 
+    # Update 1.8: remembers reps per set position (set 1 is usually higher
+    # reps than set 3 in a pyramid, e.g. 12/10/8) instead of one shared
+    # last_reps value that the most recently logged set always overwrote.
+    plan_cols = {r["name"] for r in conn.execute("PRAGMA table_info(plan_exercises)").fetchall()}
+    if "last_reps_by_set" not in plan_cols:
+        conn.execute("ALTER TABLE plan_exercises ADD COLUMN last_reps_by_set TEXT")
+
     _fix_session_sets_fk(conn)
     _seed_aamend_account(conn)
     _fix_aamend_history_v2(conn)
+    _fix_aamend_history_v3(conn)
 
 
 def _fix_session_sets_fk(conn: sqlite3.Connection):
@@ -403,6 +412,86 @@ def _fix_aamend_history_v2(conn: sqlite3.Connection):
     _import_aamend_history(conn)
     conn.execute(
         "INSERT INTO seed_meta (key, value) VALUES ('aamend_history_v2', datetime('now'))"
+    )
+
+
+# Update 1.8: re-examined "NO SKINNY FAT PLS.xlsx" again after the user
+# pointed out it holds visibly more real training days than the 14 the v2
+# import produced. Root cause: several column headers in the sheet are not
+# clean dates at all. Some got overwritten with a stray weight/duration
+# number (10.5, 16.5, 27.6, 30.6, 2.7), and one has a typo'd year (2029
+# instead of 2026) or an impossible future day (8/30, past "today" in the
+# sheet's own timeline, really meant 7/30). The v2 parser only ever
+# recognized a column as a real session when its header cell parsed
+# cleanly as a date, so all seven of these were silently skipped even
+# though the exercise rows underneath them hold full, real logged sets.
+# Each one's true date is inferred from its position in the sheet: every
+# other column group in the workbook runs left-to-right in strict
+# chronological order, so a corrupted header's date is pinned down by
+# the two clean dates immediately surrounding it (this is the same
+# "infer from context" approach the user explicitly asked for). One
+# already-imported session also gets a date correction here: the column
+# between 5/4 and 5/8 carried a literal header value of 8/6/2026, which
+# would be the only column in the entire sheet out of chronological
+# order if taken at face value (almost certainly a "5" mistyped as
+# "8"), corrected to 5/6/2026.
+_AAMEND_HISTORY_V2_ROWS = [
+    ("2026-04-30", "push"), ("2026-05-02", "pull"), ("2026-05-04", "push"),
+    ("2026-05-08", "push"), ("2026-05-11", "push"), ("2026-05-13", "pull"),
+    ("2026-06-02", "push"), ("2026-06-04", "pull"), ("2026-06-11", "pull"),
+    ("2026-07-16", "push"), ("2026-07-18", "push"), ("2026-08-01", "pull"),
+    ("2026-08-03", "push"), ("2026-08-06", "pull"),
+]
+
+
+def _fix_aamend_history_v3(conn: sqlite3.Connection):
+    if not conn.execute("SELECT 1 FROM auth_credentials WHERE username='aamend'").fetchone():
+        return  # _seed_aamend_account() hasn't even run yet (nothing to fix)
+    if conn.execute("SELECT 1 FROM seed_meta WHERE key='aamend_history_v3'").fetchone():
+        return  # already fixed
+
+    def _delete_session(row_id):
+        conn.execute("DELETE FROM session_sets WHERE session_id=?", (row_id,))
+        conn.execute("DELETE FROM workout_sessions WHERE id=?", (row_id,))
+
+    # Pass 1: remove the specific old/wrong (date, day_type) rows carried
+    # forward from the v2-era 14-session import (this is what an upgraded
+    # prod DB, which already ran v2 in the past, actually has sitting in it).
+    for date, day_type in _AAMEND_HISTORY_V2_ROWS:
+        for r in conn.execute(
+            "SELECT id FROM workout_sessions WHERE user_id=? AND date=? AND day_type=?",
+            (AAMEND_USER_ID, date, day_type),
+        ).fetchall():
+            _delete_session(r["id"])
+    for d in {d for d, _ in _AAMEND_HISTORY_V2_ROWS}:
+        conn.execute("DELETE FROM bodyweight_log WHERE user_id=? AND date=?", (AAMEND_USER_ID, d))
+
+    # Pass 2: also remove anything already sitting under any date the
+    # *current* seed_aamend_history.json covers, regardless of day_type.
+    # This project has no persistent Railway volume yet (see CLAUDE.md), so
+    # every deploy actually starts from a brand-new empty database:
+    # _seed_aamend_account() already imports the current (corrected,
+    # 21-session) file fresh on that first run, before this function ever
+    # gets a chance to run. Without this pass, pass 1's old 14-row list
+    # (which no longer matches what's already correctly seeded) would leave
+    # everything untouched, and the unconditional _import_aamend_history()
+    # call below would insert a second, duplicate copy of every session.
+    if SEED_AAMEND_HISTORY_PATH.exists():
+        try:
+            history = json.loads(SEED_AAMEND_HISTORY_PATH.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            history = []
+        for d in {s["date"] for s in history}:
+            for r in conn.execute(
+                "SELECT id FROM workout_sessions WHERE user_id=? AND date=?",
+                (AAMEND_USER_ID, d),
+            ).fetchall():
+                _delete_session(r["id"])
+            conn.execute("DELETE FROM bodyweight_log WHERE user_id=? AND date=?", (AAMEND_USER_ID, d))
+
+    _import_aamend_history(conn)
+    conn.execute(
+        "INSERT INTO seed_meta (key, value) VALUES ('aamend_history_v3', datetime('now'))"
     )
 
 
@@ -706,7 +795,22 @@ def log_set(user_id: str, session_id: int, exercise_name: str, set_index: int,
             if weight is not None:
                 update_fields.append("last_weight=?"); params.append(weight)
             if reps is not None:
+                # Update 1.8: merge into the per-set-index map instead of a
+                # single shared last_reps column. Set 1 usually runs higher
+                # reps than set 3 in a pyramid (e.g. 12/10/8), so each set
+                # index keeps its own remembered value rather than the most
+                # recently logged set overwriting all the others.
+                row = conn.execute(
+                    "SELECT last_reps_by_set FROM plan_exercises WHERE user_id=? AND name=?",
+                    (user_id, exercise_name),
+                ).fetchone()
+                try:
+                    by_set = json.loads(row["last_reps_by_set"]) if row and row["last_reps_by_set"] else {}
+                except (TypeError, ValueError):
+                    by_set = {}
+                by_set[str(set_index)] = reps
                 update_fields.append("last_reps=?"); params.append(reps)
+                update_fields.append("last_reps_by_set=?"); params.append(json.dumps(by_set))
             if update_fields:
                 params += [user_id, exercise_name]
                 conn.execute(
