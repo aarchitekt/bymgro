@@ -97,6 +97,12 @@
   .settings-section { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line); }
   .settings-hint { font-size: 11px; color: var(--muted); text-align:center; opacity:.75; letter-spacing:.02em; }
 
+  /* ---------- Update 1.7: nutrition recommendation box ---------- */
+  .n-reco { font-size:12.5px; color:var(--muted); background:var(--panel); border:1px solid var(--line);
+    border-radius:12px; padding:10px 12px; margin-bottom:12px; line-height:1.5; }
+  .n-reco b { color:var(--ink); }
+  .n-reco.warn { color:#c0392b; border-color:#c0392b; }
+
   /* ---------- goal chips (Update 1.2) ---------- */
   .goal-grid { display:grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
   .goal-chip { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 13px 8px; text-align:center; font-size: 12.5px; font-weight:700; cursor:pointer; transition: all .15s ease; color: var(--ink); }
@@ -132,8 +138,36 @@
   .xt-split-row td { background: var(--ink); color: var(--on-ink); font-weight: 800; font-size: 10px; letter-spacing: .1em; padding: 6px; position: sticky; left: 0; }
   .xt-cell.filled { font-weight: 700; }
   .xt-empty-note { padding: 50px 10px; text-align: center; color: var(--muted); font-size: 13px; }
-  .xt-legend { display:flex; gap:16px; justify-content:center; margin-top:12px; font-size:11px; color:var(--muted); }
+  .xt-legend { display:flex; gap:16px; justify-content:center; margin-top:12px; font-size:11px; color:var(--muted); flex-wrap:wrap; }
   .xt-legend .dot { width:8px;height:8px;border-radius:2px; display:inline-block; margin-right:5px; vertical-align:middle; }
+
+  /* ---------- Update 1.7: Tabelle view-mode + Push/Pull switches, month calendar ---------- */
+  .xt-switch-row { margin-bottom: 12px; }
+  .seg-btn.on.xt-push-on { background: var(--accent); color: #fff; }
+  .seg-btn.on.xt-pull-on { background: var(--good); color: #fff; }
+  .xt-cal-nav { display:flex; align-items:center; justify-content:space-between; margin: 4px 0 12px; }
+  .xt-cal-month { font-size:14px; font-weight:700; }
+  .xt-cal-wd-row { display:grid; grid-template-columns: repeat(7,1fr); text-align:center; font-size:10px; color:var(--muted); margin-bottom:6px; letter-spacing:.03em; }
+  .xt-cal-grid { display:grid; grid-template-columns: repeat(7,1fr); gap:5px; }
+  .xt-cal-cell { position:relative; aspect-ratio:1; border-radius:10px; display:flex; align-items:center; justify-content:center;
+    font-size:12px; background:var(--panel); border:1px solid var(--line); color:var(--muted); }
+  .xt-cal-cell.empty { background:none; border:none; }
+  .xt-cal-cell.push { background:color-mix(in srgb, var(--accent) 28%, var(--bg)); border-color:var(--accent); color:var(--ink); font-weight:700; cursor:pointer; }
+  .xt-cal-cell.pull { background:color-mix(in srgb, var(--good) 28%, var(--bg)); border-color:var(--good); color:var(--ink); font-weight:700; cursor:pointer; }
+  .xt-cal-cell.both { background:linear-gradient(135deg, color-mix(in srgb, var(--accent) 32%, var(--bg)) 50%, color-mix(in srgb, var(--good) 32%, var(--bg)) 50%); border-color:var(--ink); color:var(--ink); font-weight:700; cursor:pointer; }
+  .xt-cal-cell.today { box-shadow: 0 0 0 2px var(--ink) inset; }
+  .xt-cal-cell.streak { box-shadow: 0 0 0 2px #ff8a3d inset; }
+  .xt-cal-cell.streak.today { box-shadow: 0 0 0 2px #ff8a3d inset, 0 0 0 4px var(--ink) inset; }
+  .xt-cal-cell .flame { position:absolute; top:-6px; right:-5px; width:15px; height:15px; color:#ff8a3d; filter: drop-shadow(0 0 4px rgba(255,138,61,.85)); }
+  .xt-cal-cell .flame svg { width:100%; height:100%; }
+  .xt-detail-card { margin-top:16px; border:1px solid var(--line); border-radius:14px; padding:12px 14px; }
+  .xt-detail-card + .xt-detail-card { margin-top:10px; }
+  .xt-detail-card.push { border-color: var(--accent); }
+  .xt-detail-card.pull { border-color: var(--good); }
+  .xt-detail-head { display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; margin-bottom:8px; }
+  .xt-detail-ex { display:flex; justify-content:space-between; gap:10px; font-size:12.5px; padding:5px 0; border-bottom:1px solid var(--line); }
+  .xt-detail-ex:last-child { border-bottom:none; }
+  .xt-detail-ex .xv { color:var(--muted); text-align:right; }
 
   .btn {
     display:inline-flex; align-items:center; justify-content:center; gap:8px;
@@ -593,11 +627,17 @@
     <section id="nutrition-screen" class="screen">
       <div class="topbar"><h1>Ernährung</h1><button class="icon-btn" id="nutrition-close-btn"></button></div>
       <div class="card">
+        <div class="goal-grid" style="grid-template-columns:1fr 1fr;margin-bottom:12px;" id="n-daytype-grid">
+          <div class="goal-chip on" data-daytype="train">Trainingstag</div>
+          <div class="goal-chip" data-daytype="rest">Ruhetag</div>
+        </div>
+        <div class="n-reco" id="n-reco"></div>
         <div class="row2">
           <div class="field"><label>Kalorien (kcal)</label><input type="number" inputmode="numeric" id="n-calories"></div>
           <div class="field"><label>Protein (g)</label><input type="number" inputmode="numeric" id="n-protein"></div>
         </div>
         <div class="macro-ratio"><span style="font-size:13px;color:var(--muted)">Protein pro kg Körpergewicht</span><span class="mv" id="n-ratio">—</span></div>
+        <button class="btn secondary small" id="n-reset-btn" style="display:none;margin-top:10px;">Zurücksetzen auf Empfehlung</button>
         <button class="btn" id="save-nutrition-btn" style="margin-top:12px;">Speichern</button>
       </div>
       <div class="card">
@@ -666,7 +706,7 @@
 </div>
 
 <script>
-const APP_VERSION = "1.6";
+const APP_VERSION = "1.7";
 document.getElementById("app-version-line").textContent = "bymgro v" + APP_VERSION;
 
 /* ================= ICONS (monochrome, currentColor) ================= */
@@ -1411,20 +1451,31 @@ function buildBigChart(points, xKey, yKey, unit){
   </svg>`;
 }
 
-/* ---------- Update 1.5: "Tabelle" -- an Excel-style progress matrix
-   (Stats > "Tabelle", still data-tab="calendar" internally, only the
-   visible label changed) replacing the old month-grid calendar. The
-   user's own workout spreadsheet -- exercises down the rows (with
-   Gewicht/Wiederhlng sub-rows), trained dates across the columns in
-   3-set (I/II/III) blocks, push exercises tinted one colour, pull the
-   other, a black "SPLIT" divider between them -- is what they actually
-   use to eyeball progress and find "sehr übersichtlich"; this mirrors
-   that layout read-only from logged data (the main workout screen
-   already handles entry, this tab never writes anything). No caching
-   across renders on purpose: the old historyDaysCache here was never
-   invalidated after finishing a workout, so the month calendar could go
-   stale within a session -- always fetch fresh instead, same as
-   renderProgress()'s own /api/progress call. */
+/* ---------- Update 1.5/1.7: "Tabelle" -- Excel-style progress matrix +
+   month calendar (Stats > "Tabelle", still data-tab="calendar" internally,
+   only the visible label changed). Two view modes, switched with
+   xtViewMode:
+   - "table": the Excel-style matrix, but now Push and Pull are never
+     stacked together (per feedback "push und pull nicht übereinander") --
+     a segmented button picks one day type at a time (xtDayType), showing
+     only that type's exercise rows and only the date columns it actually
+     has sessions on.
+   - "calendar": a real month grid (the one Update 1.5 removed, brought
+     back) -- each trained day is tinted push/pull (or a split tint if
+     both happened same day), tapping a day shows that day's logged sets
+     below the grid, and the currently active workout streak gets a
+     flame badge + highlighted ring so it's actually visible at a glance,
+     not just implied by the dot color (per feedback "streaks sollten
+     richtig wahrnehmbar sein").
+   No caching of the *rendered* view across mode/type switches is needed
+   since xtLastData holds the fetched data and re-renders are just
+   re-running the relevant render function against it -- only the network
+   fetch itself is cached per Stats-screen-open, same as before. */
+let xtViewMode = "table";
+let xtDayType = "push";
+let xtCalYear = null, xtCalMonth = null;
+let xtLastData = null;
+
 async function loadTableData(){
   const plan = state.plan || await api("/api/plan");
   const hist = await api("/api/history?limit=1000");
@@ -1434,38 +1485,66 @@ function xtShortDate(iso){
   const d = new Date(iso + "T00:00:00");
   return d.toLocaleDateString("de-DE", {day:"2-digit", month:"2-digit"});
 }
+function xtDisplayName(name){
+  return name.replace(" (Supported)","").replace(" (Supported","");
+}
 async function renderExcelTable(){
   const host = $("stats-calendar-body");
   if(!host) return;
   host.innerHTML = '<div class="xt-empty-note">Lädt…</div>';
-  let data;
   try{
-    data = await loadTableData();
+    xtLastData = await loadTableData();
   }catch(e){
-    host.innerHTML = '<div class="xt-empty-note">Tabelle konnte nicht geladen werden.</div>'
+    host.innerHTML = '<div class="xt-empty-note">Konnte nicht geladen werden.</div>'
       + '<div style="text-align:center;margin-top:10px;"><button class="btn secondary small" id="xt-retry-btn">Nochmal versuchen</button></div>';
     const retryBtn = $("xt-retry-btn");
     if(retryBtn) retryBtn.addEventListener("click", renderExcelTable);
     return;
   }
+  renderXtHost();
+}
+function renderXtHost(){
+  const host = $("stats-calendar-body");
+  if(!host || !xtLastData) return;
+  host.innerHTML = `
+    <div class="seg-switch xt-switch-row" id="xt-mode-switch">
+      <button class="seg-btn ${xtViewMode==='table'?'on':''}" data-mode="table">Tabelle</button>
+      <button class="seg-btn ${xtViewMode==='calendar'?'on':''}" data-mode="calendar">Kalender</button>
+    </div>
+    <div id="xt-content"></div>
+  `;
+  host.querySelectorAll("#xt-mode-switch .seg-btn").forEach(b=>{
+    b.addEventListener("click", ()=>{ xtViewMode = b.dataset.mode; renderXtHost(); });
+  });
+  if(xtViewMode === "table") renderXtTableView();
+  else renderXtCalendarView();
+}
 
-  const sessions = (data.hist || []).filter(s => s.finished).slice()
+/* ---- Tabelle (matrix) view, one day-type at a time ---- */
+function renderXtTableView(){
+  const content = $("xt-content");
+  if(!content || !xtLastData) return;
+  const data = xtLastData;
+  const typeSwitchHtml = `
+    <div class="seg-switch xt-switch-row" id="xt-type-switch">
+      <button class="seg-btn ${xtDayType==='push'?'on xt-push-on':''}" data-type="push">Push</button>
+      <button class="seg-btn ${xtDayType==='pull'?'on xt-pull-on':''}" data-type="pull">Pull</button>
+    </div>`;
+
+  const sessions = (data.hist || []).filter(s => s.finished && s.day_type === xtDayType).slice()
     .sort((a,b)=> a.date.localeCompare(b.date) || a.id - b.id);
+
   if(!sessions.length){
-    host.innerHTML = '<div class="xt-empty-note">Noch keine abgeschlossenen Workouts geloggt.</div>';
+    content.innerHTML = typeSwitchHtml
+      + `<div class="xt-empty-note">Noch keine abgeschlossenen ${xtDayType==='push'?'Push':'Pull'}-Workouts geloggt.</div>`;
+    wireXtTypeSwitch();
     return;
   }
 
-  // one column per session in chronological order (not per calendar date --
-  // two sessions could in theory share a date), same left-to-right ordering
-  // the progress charts already use.
   const cols = sessions.map(s => ({ date: s.date, sets: s.sets || [] }));
-  const rows = [];
-  ["push", "pull"].forEach(day => {
-    (data.plan[day] || []).forEach(ex => rows.push({
-      day, name: ex.name, muscle: ex.muscle, kind: ex.kind, target: ex.target_sets || 3,
-    }));
-  });
+  const rows = (data.plan[xtDayType] || []).map(ex => ({
+    name: ex.name, muscle: ex.muscle, kind: ex.kind, target: ex.target_sets || 3,
+  }));
   const maxSets = Math.max(3, ...rows.map(r => r.target || 3));
   const SET_LABELS = ["I","II","III","IV","V"];
 
@@ -1484,12 +1563,9 @@ async function renderExcelTable(){
       return out;
     }).join("");
   }
-  function displayName(name){
-    return name.replace(" (Supported)","").replace(" (Supported","");
-  }
   function primaryRow(r){
     const label = r.kind === "weight" ? "Gewicht" : r.kind === "time" ? "Zeit" : "Wiederhlng";
-    const nameCell = `<td class="xt-name-col"><div class="xn">${displayName(r.name)}</div>`
+    const nameCell = `<td class="xt-name-col"><div class="xn">${xtDisplayName(r.name)}</div>`
       + `<div class="xm">${r.muscle||""}</div><div class="xl">${label}</div></td>`;
     const valueOf = (s)=>{
       if(!s) return "";
@@ -1497,29 +1573,23 @@ async function renderExcelTable(){
       if(r.kind === "time") return s.value_text || (s.reps!=null ? fmt1(s.reps) : "");
       return s.reps!=null ? fmt1(s.reps) : "";
     };
-    return `<tr class="xt-row-${r.day}">${nameCell}${cellsHtml(r, valueOf)}</tr>`;
+    return `<tr class="xt-row-${xtDayType}">${nameCell}${cellsHtml(r, valueOf)}</tr>`;
   }
   function repsRow(r){
     const nameCell = `<td class="xt-name-col"><div class="xl">Wiederhlng</div></td>`;
     const valueOf = (s)=> (s && s.reps!=null) ? fmt1(s.reps) : "";
-    return `<tr class="xt-row-${r.day}">${nameCell}${cellsHtml(r, valueOf)}</tr>`;
+    return `<tr class="xt-row-${xtDayType}">${nameCell}${cellsHtml(r, valueOf)}</tr>`;
   }
 
   const dateHead = cols.map(c => `<th class="xt-date-head" colspan="${maxSets}">${xtShortDate(c.date)}</th>`).join("");
   const setHead = cols.map(()=> SET_LABELS.slice(0,maxSets).map(l=>`<th class="xt-set-head">${l}</th>`).join("")).join("");
-
   const bodyRows = [];
-  let sawSplit = false;
   rows.forEach(r=>{
-    if(r.day === "pull" && !sawSplit){
-      bodyRows.push(`<tr class="xt-split-row"><td colspan="${1 + cols.length*maxSets}">SPLIT</td></tr>`);
-      sawSplit = true;
-    }
     bodyRows.push(primaryRow(r));
     if(r.kind === "weight") bodyRows.push(repsRow(r));
   });
 
-  host.innerHTML = `
+  content.innerHTML = typeSwitchHtml + `
     <div class="xt-wrap">
       <table class="xt-table">
         <thead>
@@ -1529,11 +1599,131 @@ async function renderExcelTable(){
         <tbody>${bodyRows.join("")}</tbody>
       </table>
     </div>
+  `;
+  wireXtTypeSwitch();
+}
+function wireXtTypeSwitch(){
+  const el = $("xt-type-switch");
+  if(!el) return;
+  el.querySelectorAll(".seg-btn").forEach(b=>{
+    b.addEventListener("click", ()=>{ xtDayType = b.dataset.type; renderXtTableView(); });
+  });
+}
+
+/* ---- Kalender (month grid) view ---- */
+function xtComputeCurrentStreakDates(dateStrings){
+  // Mirrors the spirit of storage.workout_streak() (tolerates one rest day
+  // between trained days, breaks on two in a row) but computed client-side
+  // from dates already loaded, purely for the calendar's visual highlight
+  // -- not wired to the backend's XP/streak numbers.
+  const set = new Set();
+  const uniq = [...new Set(dateStrings)].sort();
+  if(!uniq.length) return set;
+  const dayMs = 86400000;
+  const toTime = s => new Date(s+"T00:00:00").getTime();
+  const todayIso = new Date().toISOString().slice(0,10);
+  const last = uniq[uniq.length-1];
+  if((toTime(todayIso) - toTime(last)) / dayMs > 2) return set; // streak already broken
+  const streak = [last];
+  for(let i=uniq.length-2; i>=0; i--){
+    const gap = (toTime(streak[streak.length-1]) - toTime(uniq[i])) / dayMs;
+    if(gap <= 2) streak.push(uniq[i]);
+    else break;
+  }
+  if(streak.length < 2) return set; // a single day isn't a "streak" yet
+  streak.forEach(d=>set.add(d));
+  return set;
+}
+function renderXtCalendarView(){
+  const content = $("xt-content");
+  if(!content || !xtLastData) return;
+  if(xtCalYear === null){
+    const now = new Date();
+    xtCalYear = now.getFullYear(); xtCalMonth = now.getMonth();
+  }
+  const sessions = (xtLastData.hist || []).filter(s => s.finished);
+  const byDate = {};
+  sessions.forEach(s => (byDate[s.date] = byDate[s.date] || []).push(s));
+  const streakDates = xtComputeCurrentStreakDates(Object.keys(byDate));
+
+  const first = new Date(xtCalYear, xtCalMonth, 1);
+  const startOffset = (first.getDay() + 6) % 7; // Monday-first grid
+  const daysInMonth = new Date(xtCalYear, xtCalMonth+1, 0).getDate();
+  const monthLabel = first.toLocaleDateString("de-DE", {month:"long", year:"numeric"});
+  const WD = ["Mo","Di","Mi","Do","Fr","Sa","So"];
+  const todayIso = new Date().toISOString().slice(0,10);
+
+  let cells = "";
+  for(let i=0;i<startOffset;i++) cells += `<div class="xt-cal-cell empty"></div>`;
+  for(let d=1; d<=daysInMonth; d++){
+    const mm = String(xtCalMonth+1).padStart(2,"0"), dd = String(d).padStart(2,"0");
+    const iso = `${xtCalYear}-${mm}-${dd}`;
+    const daySessions = byDate[iso];
+    let cls = "xt-cal-cell";
+    if(daySessions){
+      const hasPush = daySessions.some(s=>s.day_type==='push');
+      const hasPull = daySessions.some(s=>s.day_type==='pull');
+      cls += hasPush && hasPull ? " both" : hasPush ? " push" : " pull";
+    }
+    if(streakDates.has(iso)) cls += " streak";
+    if(iso === todayIso) cls += " today";
+    const flame = (daySessions && streakDates.has(iso)) ? `<span class="flame">${ic('flame')}</span>` : "";
+    cells += `<div class="${cls}" data-date="${daySessions?iso:''}">${flame}<span class="dn">${d}</span></div>`;
+  }
+
+  content.innerHTML = `
+    <div class="xt-cal-nav">
+      <button class="icon-btn small" id="xt-cal-prev">‹</button>
+      <div class="xt-cal-month">${monthLabel}</div>
+      <button class="icon-btn small" id="xt-cal-next">›</button>
+    </div>
+    <div class="xt-cal-wd-row">${WD.map(w=>`<div>${w}</div>`).join("")}</div>
+    <div class="xt-cal-grid">${cells}</div>
     <div class="xt-legend">
       <span><span class="dot" style="background:var(--accent)"></span>Push</span>
       <span><span class="dot" style="background:var(--good)"></span>Pull</span>
+      <span><span class="dot" style="background:linear-gradient(90deg,var(--accent),var(--good))"></span>Beides</span>
+      <span>🔥 Aktuelle Streak</span>
     </div>
+    <div id="xt-day-detail"></div>
   `;
+  $("xt-cal-prev").addEventListener("click", ()=>{
+    xtCalMonth--; if(xtCalMonth<0){ xtCalMonth=11; xtCalYear--; }
+    renderXtCalendarView();
+  });
+  $("xt-cal-next").addEventListener("click", ()=>{
+    xtCalMonth++; if(xtCalMonth>11){ xtCalMonth=0; xtCalYear++; }
+    renderXtCalendarView();
+  });
+  content.querySelectorAll(".xt-cal-cell[data-date]").forEach(cell=>{
+    if(!cell.dataset.date) return;
+    cell.addEventListener("click", ()=> xtShowDayDetail(cell.dataset.date, byDate[cell.dataset.date]));
+  });
+}
+function xtShowDayDetail(date, sessions){
+  const el = $("xt-day-detail");
+  if(!el || !sessions || !sessions.length) return;
+  const d = new Date(date+"T00:00:00");
+  const label = d.toLocaleDateString("de-DE", {weekday:"long", day:"numeric", month:"long"});
+  el.innerHTML = sessions.map(s=>{
+    const bySet = {};
+    (s.sets||[]).filter(x=>x.logged).forEach(x=> (bySet[x.exercise_name] = bySet[x.exercise_name] || []).push(x));
+    const exList = Object.entries(bySet).map(([name, sets])=>{
+      sets.sort((a,b)=>a.set_index-b.set_index);
+      const vals = sets.map(x=>{
+        if(x.weight!=null) return fmt1(x.weight)+"kg × "+fmt1(x.reps!=null?x.reps:0);
+        if(x.value_text) return x.value_text;
+        if(x.reps!=null) return fmt1(x.reps);
+        return "–";
+      }).join(", ");
+      return `<div class="xt-detail-ex"><span class="xn">${xtDisplayName(name)}</span><span class="xv">${vals}</span></div>`;
+    }).join("");
+    return `<div class="xt-detail-card ${s.day_type}">
+      <div class="xt-detail-head"><span class="day-badge">${s.day_type.toUpperCase()}</span><span>${label}</span></div>
+      ${exList || '<div class="xt-empty-note" style="padding:10px 0;">Keine Sätze geloggt.</div>'}
+    </div>`;
+  }).join("");
+  el.scrollIntoView({behavior:"smooth", block:"nearest"});
 }
 
 async function renderProgress(){
@@ -1755,16 +1945,80 @@ $("add-friend-btn").addEventListener("click", async ()=>{
 });
 
 /* ================= NUTRITION ================= */
+// Update 1.7: automatic calorie/protein recommendation (Mifflin-St Jeor)
+// instead of pure manual entry. nState.overridden tracks whether the
+// currently shown numbers are the live recommendation or a value the user
+// typed/saved themselves -- as long as it's false, the inputs stay wired
+// to the recommendation and update live when the Trainingstag/Ruhetag
+// chip or the loaded profile changes; once true (user typed, or a
+// non-null value was already saved server-side), the inputs are left
+// alone until "Zurücksetzen auf Empfehlung" is tapped.
+let nState = { profile: null, overridden: false, dayType: "train" };
+
 $("open-nutrition-btn").addEventListener("click", async ()=>{ await loadNutrition(); showScreen("nutrition-screen"); });
 $("nutrition-close-btn").addEventListener("click", ()=> showScreen("settings-screen"));
 
+function nutritionRecommendation(profile, isTrainDay){
+  const { height_cm, weight_kg, age, sex } = profile || {};
+  if(!height_cm || !weight_kg || !age || !sex) return null;
+  let bmr;
+  if(sex === "m") bmr = 10*weight_kg + 6.25*height_cm - 5*age + 5;
+  else if(sex === "w") bmr = 10*weight_kg + 6.25*height_cm - 5*age - 161;
+  else bmr = 10*weight_kg + 6.25*height_cm - 5*age - 78; // divers/unbekannt: Mittelwert aus +5 und -161
+  const tdee = bmr * 1.55; // Aktivitätsfaktor für 4-5x Krafttraining/Woche
+  const calories = isTrainDay ? tdee + 50 : tdee - 300;
+  const protein = 2.2 * weight_kg;
+  const fatMin = 1.0 * weight_kg;
+  const carbs = (calories - protein*4 - fatMin*9) / 4;
+  return {
+    tdee: Math.round(tdee), calories: Math.round(calories), protein: Math.round(protein),
+    fatMin: Math.round(fatMin), carbs: Math.round(carbs), fatWarning: carbs < 0,
+  };
+}
+function renderNReco(){
+  const box = $("n-reco");
+  const reco = nutritionRecommendation(nState.profile, nState.dayType === "train");
+  if(!reco){
+    box.classList.remove("warn");
+    box.innerHTML = "Profil vervollständigen (Größe, Gewicht, Alter, Geschlecht) für eine automatische Empfehlung.";
+    $("n-reset-btn").style.display = "none";
+    return null;
+  }
+  box.classList.toggle("warn", reco.fatWarning);
+  box.innerHTML = `Empfohlen: <b>${reco.calories} kcal</b> / <b>${reco.protein} g</b> Protein`
+    + ` · Fett min. ${reco.fatMin} g, Carbs ~${Math.max(0,reco.carbs)} g`
+    + (reco.fatWarning ? `<br>Kalorienziel reicht rechnerisch nicht für Fett-Minimum + Carbs > 0 — Fett-Minimum wird trotzdem empfohlen.` : "");
+  $("n-reset-btn").style.display = nState.overridden ? "block" : "none";
+  return reco;
+}
+function applyRecoToInputs(){
+  const reco = renderNReco();
+  if(!reco || nState.overridden) return;
+  $("n-calories").value = reco.calories;
+  $("n-protein").value = reco.protein;
+  updateRatio(nState.profile ? nState.profile.weight_kg : null);
+}
 async function loadNutrition(){
   const [n, profile] = await Promise.all([api("/api/nutrition"), api("/api/profile")]);
-  $("n-calories").value = n.calories || "";
-  $("n-protein").value = n.protein_g || "";
-  updateRatio(profile.weight_kg);
+  nState.profile = profile;
+  nState.overridden = (n.calories != null || n.protein_g != null);
+  if(nState.overridden){
+    $("n-calories").value = n.calories || "";
+    $("n-protein").value = n.protein_g || "";
+    renderNReco();
+    updateRatio(profile.weight_kg);
+  } else {
+    applyRecoToInputs();
+  }
   renderSupplements(n.supplements);
 }
+document.querySelectorAll("#n-daytype-grid .goal-chip").forEach(chip=>{
+  chip.addEventListener("click", ()=>{
+    nState.dayType = chip.dataset.daytype;
+    document.querySelectorAll("#n-daytype-grid .goal-chip").forEach(c=> c.classList.toggle("on", c===chip));
+    if(nState.overridden) renderNReco(); else applyRecoToInputs();
+  });
+});
 function updateRatio(weightKg){
   const protein = parseFloat($("n-protein").value);
   if(weightKg && protein){
@@ -1773,15 +2027,27 @@ function updateRatio(weightKg){
     $("n-ratio").textContent = "—";
   }
 }
-$("n-protein").addEventListener("input", async ()=>{
-  const p = await api("/api/profile");
-  updateRatio(p.weight_kg);
+$("n-calories").addEventListener("input", ()=>{
+  nState.overridden = true;
+  $("n-reset-btn").style.display = "block";
+});
+$("n-protein").addEventListener("input", ()=>{
+  nState.overridden = true;
+  $("n-reset-btn").style.display = "block";
+  updateRatio(nState.profile ? nState.profile.weight_kg : null);
+});
+$("n-reset-btn").addEventListener("click", async ()=>{
+  nState.overridden = false;
+  await api("/api/nutrition", {method:"PUT", body: JSON.stringify({calories: null, protein_g: null})});
+  applyRecoToInputs();
+  toast("Auf Empfehlung zurückgesetzt");
 });
 $("save-nutrition-btn").addEventListener("click", async ()=>{
   await api("/api/nutrition", {method:"PUT", body: JSON.stringify({
     calories: $("n-calories").value ? parseFloat($("n-calories").value) : null,
     protein_g: $("n-protein").value ? parseFloat($("n-protein").value) : null,
   })});
+  nState.overridden = ($("n-calories").value !== "" || $("n-protein").value !== "");
   toast("Ernährung gespeichert", "check");
   refreshGamification();
 });
