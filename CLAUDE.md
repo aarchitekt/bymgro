@@ -97,18 +97,20 @@ entirely). Port is hardcoded to `8080` everywhere (Dockerfile `CMD`,
 `EXPOSE`, and the Railway `startCommand` override) because Railway does not
 reliably shell-expand `$PORT` in either of those.
 
-**Known unresolved gap: no working persistent volume.** A Railway volume
-was created and mounted at `/data`, but the app couldn't open a database
-file there (`sqlite3.OperationalError: unable to open database file`) —
-root cause not confirmed (mount not actually attached/writable, most
-likely). Stopgapped by pointing `BYMGRO_DB_PATH` at the container's own
-ephemeral filesystem (`/app/bymgro.db`) so the app runs, but **this means
-any data written on Main is lost on the next deploy** until the volume is
-properly fixed. Do not treat Main as durable storage until this is
-resolved. Separately: Main's database is entirely its own fresh instance —
-it seeds from `backend/seed_data.json` only once, the first time anyone's
-"first user" slot on that specific database gets claimed; it does not share
-data with the Mac's local Dev database.
+**Resolved (confirmed 2026-08-17): the persistent volume now works.**
+`BYMGRO_DB_PATH` points at `/data/bymgro.db`, and `/data` is a real, writable,
+mounted Railway volume (verified live via the Railway console: a genuine
+mount with its own `lost+found`, not the container's ephemeral layer, and
+the db file's mtime keeps advancing across restarts instead of resetting).
+This means Main's database now survives deploys — do not assume every
+deploy starts from a blank database anymore (older notes elsewhere in this
+file, and some already-written migration code, assumed a fresh-every-deploy
+database; that assumption is no longer safe and should be revisited if it
+ever matters for a new migration). Separately: Main's database seeded from
+`backend/seed_data.json`/`backend/seed_aamend_history.json` only once, the
+first time the relevant "first user"/aamend account slot on that specific
+database got claimed; it does not share data with the Mac's local Dev
+database.
 
 ## Data model / where things live
 
@@ -665,12 +667,8 @@ sync with the actual current exercise.
 - No auth/multi-user — single local profile, matches "just for me" framing
   of the original ask. Would need the same session_id pattern as memori-mvp
   if this ever needs multiple people's data on one deployed server.
-- No persistent Railway volume configured yet — same risk memori-mvp hit
-  (SQLite file lives in the container's ephemeral filesystem unless a volume
-  is attached and `BYMGRO_DB_PATH` is pointed at it). Set this up before
-  relying on Main for real data long-term: Railway dashboard → Service →
-  Settings → Volumes → New Volume, mount it, then set `BYMGRO_DB_PATH` env
-  var to that mount path.
+- ~~No persistent Railway volume configured yet~~ Resolved: see "Deployment
+  status" above, confirmed working 2026-08-17.
 - Plan editor has no drag-and-drop reorder, just ↑/↓ buttons — fine for a
   short list, revisit only if it feels clunky in practice.
 - **Greek-statue exercise illustrations (asked for in Update 1.3, not yet
