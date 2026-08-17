@@ -114,20 +114,26 @@
   .stats-panel.on { display:flex; }
   .stats-panel.scrolly { overflow-y:auto; -webkit-overflow-scrolling:touch; }
 
-  /* ---------- progress: calendar page (Update 1.2) ---------- */
-  .cal-nav-row { display:flex; align-items:center; justify-content:space-between; margin-top: 4px; }
-  .cal-nav-row .cal-month-label { font-size: 15px; font-weight: 800; }
-  .cal-wd-row, .cal-grid { display:grid; grid-template-columns: repeat(7,1fr); gap:5px; }
-  .cal-wd-row { margin-top: 16px; }
-  .cal-wd { font-size:10px; color:var(--muted); text-align:center; text-transform:uppercase; letter-spacing:.03em; }
-  .cal-grid { margin-top: 6px; }
-  .cal-cell { aspect-ratio:1; display:flex; align-items:center; justify-content:center; border-radius:10px; font-size:12.5px; background: var(--panel); }
-  .cal-cell.empty { background: none; }
-  .cal-cell.has-push { background: color-mix(in srgb, var(--accent) 24%, transparent); font-weight:700; }
-  .cal-cell.has-pull { background: color-mix(in srgb, var(--good) 24%, transparent); font-weight:700; }
-  .cal-cell.today { box-shadow: inset 0 0 0 1.5px var(--ink); }
-  .cal-legend { display:flex; gap:16px; justify-content:center; margin-top:16px; font-size:11px; color:var(--muted); }
-  .cal-legend .dot { width:8px;height:8px;border-radius:50%; display:inline-block; margin-right:5px; vertical-align:middle; }
+  /* ---------- Stats: "Tabelle" (Update 1.5) -- Excel-style progress matrix ---------- */
+  .xt-wrap { margin-top: 10px; overflow: auto; -webkit-overflow-scrolling: touch; border: 1px solid var(--line); border-radius: 14px; max-height: 100%; }
+  .xt-table { border-collapse: collapse; font-size: 11px; }
+  .xt-table th, .xt-table td { border: 1px solid var(--line); padding: 5px 4px; text-align: center; white-space: nowrap; }
+  .xt-name-col { position: sticky; left: 0; background: var(--bg); z-index: 2; text-align: left; padding: 6px 8px; min-width: 92px; max-width: 92px; white-space: normal; }
+  .xt-name-col .xn { font-weight: 700; font-size: 11.5px; line-height: 1.2; }
+  .xt-name-col .xm { color: var(--muted); font-size: 9px; text-transform: uppercase; letter-spacing: .02em; }
+  .xt-name-col .xl { color: var(--muted); font-size: 10px; font-style: italic; }
+  .xt-corner { position: sticky; left: 0; top: 0; z-index: 4; background: var(--bg); }
+  .xt-date-head { position: sticky; top: 0; z-index: 3; background: var(--bg); font-weight: 700; font-size: 10px; padding: 6px 2px; }
+  .xt-set-head { position: sticky; top: 25px; z-index: 3; background: var(--bg); color: var(--muted); font-size: 9px; font-weight: 600; padding: 3px 2px; }
+  .xt-row-push { background: color-mix(in srgb, var(--accent) 9%, transparent); }
+  .xt-row-pull { background: color-mix(in srgb, var(--good) 9%, transparent); }
+  .xt-row-push .xt-name-col { background: color-mix(in srgb, var(--accent) 15%, var(--bg)); }
+  .xt-row-pull .xt-name-col { background: color-mix(in srgb, var(--good) 15%, var(--bg)); }
+  .xt-split-row td { background: var(--ink); color: var(--on-ink); font-weight: 800; font-size: 10px; letter-spacing: .1em; padding: 6px; position: sticky; left: 0; }
+  .xt-cell.filled { font-weight: 700; }
+  .xt-empty-note { padding: 50px 10px; text-align: center; color: var(--muted); font-size: 13px; }
+  .xt-legend { display:flex; gap:16px; justify-content:center; margin-top:12px; font-size:11px; color:var(--muted); }
+  .xt-legend .dot { width:8px;height:8px;border-radius:2px; display:inline-block; margin-right:5px; vertical-align:middle; }
 
   .btn {
     display:inline-flex; align-items:center; justify-content:center; gap:8px;
@@ -470,7 +476,7 @@
         <h1>Stats</h1>
         <div class="seg-switch" id="stats-switch">
           <button class="seg-btn on" data-tab="progress">Progress</button>
-          <button class="seg-btn" data-tab="calendar">Kalender</button>
+          <button class="seg-btn" data-tab="calendar">Tabelle</button>
           <button class="seg-btn" data-tab="achievements">Erfolge</button>
         </div>
       </div>
@@ -625,7 +631,7 @@
 </div>
 
 <script>
-const APP_VERSION = "1.4";
+const APP_VERSION = "1.5";
 document.getElementById("app-version-line").textContent = "bymgro v" + APP_VERSION;
 
 /* ================= ICONS (monochrome, currentColor) ================= */
@@ -764,7 +770,7 @@ function setStatsTab(tab){
   statsTab = tab;
   document.querySelectorAll("#stats-switch .seg-btn").forEach(b=> b.classList.toggle("on", b.dataset.tab===tab));
   document.querySelectorAll(".stats-panel").forEach(p=> p.classList.toggle("on", p.id === "stats-panel-"+tab));
-  if(tab === "calendar") renderCalendarBody();
+  if(tab === "calendar") renderExcelTable();
   if(tab === "achievements") refreshGamification();
 }
 document.querySelectorAll("#stats-switch .seg-btn").forEach(b=>{
@@ -1314,53 +1320,129 @@ function buildBigChart(points, xKey, yKey, unit){
   </svg>`;
 }
 
-/* ---------- Update 1.2: calendar page, first in the carousel ---------- */
-let calYear = null, calMonth = null; // calMonth is 0-11
-let historyDaysCache = null; // {iso: "push"|"pull"}, only finished sessions
-async function loadHistoryDays(){
-  if(historyDaysCache) return historyDaysCache;
+/* ---------- Update 1.5: "Tabelle" -- an Excel-style progress matrix
+   (Stats > "Tabelle", still data-tab="calendar" internally, only the
+   visible label changed) replacing the old month-grid calendar. The
+   user's own workout spreadsheet -- exercises down the rows (with
+   Gewicht/Wiederhlng sub-rows), trained dates across the columns in
+   3-set (I/II/III) blocks, push exercises tinted one colour, pull the
+   other, a black "SPLIT" divider between them -- is what they actually
+   use to eyeball progress and find "sehr übersichtlich"; this mirrors
+   that layout read-only from logged data (the main workout screen
+   already handles entry, this tab never writes anything). No caching
+   across renders on purpose: the old historyDaysCache here was never
+   invalidated after finishing a workout, so the month calendar could go
+   stale within a session -- always fetch fresh instead, same as
+   renderProgress()'s own /api/progress call. */
+async function loadTableData(){
+  const plan = state.plan || await api("/api/plan");
   const hist = await api("/api/history?limit=1000");
-  const map = {};
-  hist.forEach(s => { if(s.finished) map[s.date] = s.day_type; });
-  historyDaysCache = map;
-  return map;
+  return { plan, hist };
 }
-function calendarPageHtml(){
-  return `
-    <div class="cal-nav-row">
-      <button class="icon-btn arrow" id="cal-prev"></button>
-      <span class="cal-month-label" id="cal-month-label"></span>
-      <button class="icon-btn arrow" id="cal-next"></button>
+function xtShortDate(iso){
+  const d = new Date(iso + "T00:00:00");
+  return d.toLocaleDateString("de-DE", {day:"2-digit", month:"2-digit"});
+}
+async function renderExcelTable(){
+  const host = $("stats-calendar-body");
+  if(!host) return;
+  host.innerHTML = '<div class="xt-empty-note">Lädt…</div>';
+  let data;
+  try{
+    data = await loadTableData();
+  }catch(e){
+    host.innerHTML = '<div class="xt-empty-note">Tabelle konnte nicht geladen werden.</div>'
+      + '<div style="text-align:center;margin-top:10px;"><button class="btn secondary small" id="xt-retry-btn">Nochmal versuchen</button></div>';
+    const retryBtn = $("xt-retry-btn");
+    if(retryBtn) retryBtn.addEventListener("click", renderExcelTable);
+    return;
+  }
+
+  const sessions = (data.hist || []).filter(s => s.finished).slice()
+    .sort((a,b)=> a.date.localeCompare(b.date) || a.id - b.id);
+  if(!sessions.length){
+    host.innerHTML = '<div class="xt-empty-note">Noch keine abgeschlossenen Workouts geloggt.</div>';
+    return;
+  }
+
+  // one column per session in chronological order (not per calendar date --
+  // two sessions could in theory share a date), same left-to-right ordering
+  // the progress charts already use.
+  const cols = sessions.map(s => ({ date: s.date, sets: s.sets || [] }));
+  const rows = [];
+  ["push", "pull"].forEach(day => {
+    (data.plan[day] || []).forEach(ex => rows.push({
+      day, name: ex.name, muscle: ex.muscle, kind: ex.kind, target: ex.target_sets || 3,
+    }));
+  });
+  const maxSets = Math.max(3, ...rows.map(r => r.target || 3));
+  const SET_LABELS = ["I","II","III","IV","V"];
+
+  function setsFor(col, name){
+    return (col.sets || []).filter(s => s.exercise_name === name && s.logged)
+      .sort((a,b)=> a.set_index - b.set_index);
+  }
+  function cellsHtml(r, valueOf){
+    return cols.map(c=>{
+      const sets = setsFor(c, r.name);
+      let out = "";
+      for(let i=0;i<maxSets;i++){
+        const v = valueOf(sets[i]);
+        out += `<td class="xt-cell${v!==""?" filled":""}">${v}</td>`;
+      }
+      return out;
+    }).join("");
+  }
+  function displayName(name){
+    return name.replace(" (Supported)","").replace(" (Supported","");
+  }
+  function primaryRow(r){
+    const label = r.kind === "weight" ? "Gewicht" : r.kind === "time" ? "Zeit" : "Wiederhlng";
+    const nameCell = `<td class="xt-name-col"><div class="xn">${displayName(r.name)}</div>`
+      + `<div class="xm">${r.muscle||""}</div><div class="xl">${label}</div></td>`;
+    const valueOf = (s)=>{
+      if(!s) return "";
+      if(r.kind === "weight") return s.weight!=null ? fmt1(s.weight) : "";
+      if(r.kind === "time") return s.value_text || (s.reps!=null ? fmt1(s.reps) : "");
+      return s.reps!=null ? fmt1(s.reps) : "";
+    };
+    return `<tr class="xt-row-${r.day}">${nameCell}${cellsHtml(r, valueOf)}</tr>`;
+  }
+  function repsRow(r){
+    const nameCell = `<td class="xt-name-col"><div class="xl">Wiederhlng</div></td>`;
+    const valueOf = (s)=> (s && s.reps!=null) ? fmt1(s.reps) : "";
+    return `<tr class="xt-row-${r.day}">${nameCell}${cellsHtml(r, valueOf)}</tr>`;
+  }
+
+  const dateHead = cols.map(c => `<th class="xt-date-head" colspan="${maxSets}">${xtShortDate(c.date)}</th>`).join("");
+  const setHead = cols.map(()=> SET_LABELS.slice(0,maxSets).map(l=>`<th class="xt-set-head">${l}</th>`).join("")).join("");
+
+  const bodyRows = [];
+  let sawSplit = false;
+  rows.forEach(r=>{
+    if(r.day === "pull" && !sawSplit){
+      bodyRows.push(`<tr class="xt-split-row"><td colspan="${1 + cols.length*maxSets}">SPLIT</td></tr>`);
+      sawSplit = true;
+    }
+    bodyRows.push(primaryRow(r));
+    if(r.kind === "weight") bodyRows.push(repsRow(r));
+  });
+
+  host.innerHTML = `
+    <div class="xt-wrap">
+      <table class="xt-table">
+        <thead>
+          <tr><th class="xt-corner" rowspan="2"></th>${dateHead}</tr>
+          <tr>${setHead}</tr>
+        </thead>
+        <tbody>${bodyRows.join("")}</tbody>
+      </table>
     </div>
-    <div class="cal-wd-row">${["Mo","Di","Mi","Do","Fr","Sa","So"].map(d=>`<div class="cal-wd">${d}</div>`).join("")}</div>
-    <div class="cal-grid" id="cal-grid"></div>
-    <div class="cal-legend">
+    <div class="xt-legend">
       <span><span class="dot" style="background:var(--accent)"></span>Push</span>
       <span><span class="dot" style="background:var(--good)"></span>Pull</span>
     </div>
   `;
-}
-async function renderCalendarBody(){
-  if(!$("cal-grid")) return;
-  const days = await loadHistoryDays();
-  $("cal-month-label").textContent = new Date(calYear, calMonth, 1).toLocaleDateString("de-DE", {month:"long", year:"numeric"});
-  const first = new Date(calYear, calMonth, 1);
-  const startOffset = (first.getDay() + 6) % 7; // Monday-first grid
-  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
-  const todayIso = new Date().toISOString().slice(0,10);
-  const cells = [];
-  for(let i=0;i<startOffset;i++) cells.push('<div class="cal-cell empty"></div>');
-  for(let d=1; d<=daysInMonth; d++){
-    const iso = `${calYear}-${String(calMonth+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
-    const dayType = days[iso];
-    const cls = dayType==="push" ? "has-push" : dayType==="pull" ? "has-pull" : "";
-    cells.push(`<div class="cal-cell ${cls}${iso===todayIso?' today':''}">${d}</div>`);
-  }
-  $("cal-grid").innerHTML = cells.join("");
-  setIcon("cal-prev","chevLeft");
-  setIcon("cal-next","chevRight");
-  $("cal-prev").onclick = ()=>{ calMonth--; if(calMonth<0){calMonth=11;calYear--;} renderCalendarBody(); };
-  $("cal-next").onclick = ()=>{ calMonth++; if(calMonth>11){calMonth=0;calYear++;} renderCalendarBody(); };
 }
 
 async function renderProgress(){
@@ -1380,13 +1462,10 @@ async function renderProgress(){
     if(retryBtn) retryBtn.addEventListener("click", renderProgress);
     return;
   }
-  if(calYear === null){ const now = new Date(); calYear = now.getFullYear(); calMonth = now.getMonth(); }
-
-  // Update 1.3.2: the calendar is now its own "Kalender" tab (see the
-  // Progress/Kalender/Erfolge switch) instead of the first carousel page --
-  // fill its container once per render so cal-prev/cal-next keep working.
-  $("stats-calendar-body").innerHTML = calendarPageHtml();
-  renderCalendarBody();
+  // Update 1.5: the Kalender tab is now the Excel-style "Tabelle" (see
+  // renderExcelTable() above) instead of a month grid -- still filled once
+  // per Stats-screen open here, same as before.
+  renderExcelTable();
 
   // Update 1.3.2: every point already only exists for a date the exercise
   // was actually logged on (the backend only writes a row when a set is
