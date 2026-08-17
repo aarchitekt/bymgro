@@ -716,7 +716,7 @@
 </div>
 
 <script>
-const APP_VERSION = "1.8.2";
+const APP_VERSION = "1.8.3";
 document.getElementById("app-version-line").textContent = "bymgro v" + APP_VERSION;
 
 /* ================= ICONS (monochrome, currentColor) ================= */
@@ -1534,8 +1534,15 @@ function buildBigChart(points, xKey, yKey, unit){
   }).filter(p => p[yKey] !== null && p[yKey] !== undefined);
   if(carried.length === 0) return '<div class="empty-note">Noch keine Daten für diese Übung.</div>';
 
+  // Update 1.8.2: the y-axis used to tightly fit the real min/max of just
+  // this exercise's own values, which stretched every fluctuation to fill
+  // the whole chart height and made small real changes (e.g. 30kg to
+  // 55kg) look like a dramatic rollercoaster. Per feedback ("der Graph
+  // sollte immer n bissi flacher sein"), the scale now always spans at
+  // least 0 to 100, only widening past that floor for a genuine outlier
+  // above 100 so real data never gets clipped off the chart.
   const ys = carried.map(p=>p[yKey]);
-  let minY = Math.min(...ys), maxY = Math.max(...ys);
+  let minY = Math.min(0, ...ys), maxY = Math.max(100, ...ys);
   if(minY === maxY){ minY -= 1; maxY += 1; }
   const rangeY = maxY - minY;
   const stepX = carried.length>1 ? (w-padL-padR)/(carried.length-1) : 0;
