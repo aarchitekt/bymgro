@@ -343,6 +343,27 @@
   #lock-screen .lock-swipe-hint { position:absolute; bottom: max(34px, calc(env(safe-area-inset-bottom) + 24px)); display:flex; flex-direction:column; align-items:center; gap:8px; color: rgba(255,255,255,.55); font-size: 11.5px; letter-spacing:.05em; text-transform:uppercase; }
   #lock-screen .lock-chev { width: 20px; height: 20px; animation: lockChevUp 1.4s ease-in-out infinite; }
   @keyframes lockChevUp { 0%,100% { transform: translateY(0); opacity:.4; } 50% { transform: translateY(-6px); opacity:1; } }
+
+  /* ---------- Update 1.6: login screen ----------
+     Sits above everything (higher z-index than #lock-screen) so an
+     unauthenticated visitor sees this first; only after a successful
+     /api/auth/login does the normal lockscreen/app flow ever run. Styled
+     to match the lockscreen's own dark, theme-independent look rather than
+     the light/dark-aware .field styling used elsewhere, since it has to
+     look right before the app (and its theme) has even loaded. */
+  #login-screen { position: fixed; inset:0; z-index: 110; background:#05070a; color:#fff;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:22px; padding: 24px; }
+  #login-screen.hidden { display:none; }
+  #login-screen .login-logo { font-size: 28px; font-weight: 800; letter-spacing:.02em; filter: drop-shadow(0 0 10px rgba(255,255,255,.5)); }
+  #login-screen form { width:100%; max-width: 300px; display:flex; flex-direction:column; gap:12px; }
+  #login-screen input { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.18); border-radius: 12px;
+    padding: 14px 14px; font-size: 16px; color:#fff; font-family:inherit; width:100%; }
+  #login-screen input::placeholder { color: rgba(255,255,255,.4); }
+  #login-screen button { background:#fff; color:#05070a; border:none; border-radius:14px; padding:14px; font-size:16px;
+    font-weight:700; font-family:inherit; cursor:pointer; }
+  #login-screen button:active { transform: scale(.97); }
+  #login-screen .login-err { color:#ff8a7a; font-size:12.5px; min-height:14px; text-align:center; }
+  #login-screen .login-hint { color: rgba(255,255,255,.4); font-size:11.5px; text-align:center; }
 </style>
 </head>
 <body>
@@ -550,6 +571,9 @@
           <div class="goal-grid" style="grid-template-columns:1fr 1fr;" id="theme-grid"></div>
         </div>
         <div class="settings-section">
+          <button class="btn secondary" id="logout-btn">Abmelden</button>
+        </div>
+        <div class="settings-section">
           <div class="settings-hint" id="app-version-line"></div>
         </div>
       </div>
@@ -606,8 +630,19 @@
 
   </div>
 </div>
+<!-- ===================== LOGIN (Update 1.6) ===================== -->
+<div id="login-screen" class="hidden">
+  <div class="login-logo">bymgro</div>
+  <form id="login-form">
+    <input type="text" id="login-username" placeholder="Nutzername" autocomplete="username" autocapitalize="off">
+    <input type="password" id="login-password" placeholder="Passwort" autocomplete="current-password">
+    <button type="submit" id="login-submit-btn">Anmelden</button>
+    <div class="login-err" id="login-err"></div>
+  </form>
+  <div class="login-hint">Neuer Nutzername? Wird beim ersten Anmelden automatisch angelegt.</div>
+</div>
 <!-- ===================== LOCKSCREEN (Update 1.3.2, memori-style swipe-up entry) ===================== -->
-<div id="lock-screen">
+<div id="lock-screen" class="hidden">
   <div class="lock-logo">bymgro</div>
   <div class="lock-sub" id="lock-sub">nach oben wischen</div>
   <div class="lock-swipe-hint">
@@ -631,7 +666,7 @@
 </div>
 
 <script>
-const APP_VERSION = "1.5";
+const APP_VERSION = "1.6";
 document.getElementById("app-version-line").textContent = "bymgro v" + APP_VERSION;
 
 /* ================= ICONS (monochrome, currentColor) ================= */
@@ -702,8 +737,14 @@ function uuid(){
   if(crypto.randomUUID) return crypto.randomUUID();
   return "u-" + Date.now() + "-" + Math.random().toString(16).slice(2);
 }
+// Update 1.6: identity now requires a real login instead of silently
+// minting a throwaway anonymous UUID -- that old auto-create-on-load
+// behaviour is exactly what caused multiple disconnected anonymous
+// accounts to pile up whenever localStorage got cleared/reset, each one
+// orphaning the real training history under an id nobody could get back
+// to. USER_ID stays null until /api/auth/login resolves one; see the
+// login-screen wiring further down for where it finally gets set.
 let USER_ID = localStorage.getItem("bymgro_user_id");
-if(!USER_ID){ USER_ID = uuid(); localStorage.setItem("bymgro_user_id", USER_ID); }
 
 async function api(path, opts){
   const headers = Object.assign({"Content-Type":"application/json", "X-User-Id": USER_ID}, (opts&&opts.headers)||{});
@@ -784,6 +825,35 @@ document.querySelectorAll("#stats-switch .seg-btn").forEach(b=>{
    Photoshop glow-noise pixel cloud. Reused everywhere: timer finishing, every 3rd completed set,
    workout finish (big burst), set-button taps (tiny glow), achievement unlocks (mini burst), and
    the lockscreen swipe-up dissolve. Coordinates are always in viewport (client) space. */
+// Update 1.6: particles used to be plain flat-color squares with a small
+// shadowBlur glow -- felt "cheap" per feedback ("die Explosionen sehen iwi
+// noch zu cheap aus"). Give them the same soft radial-gradient + baked-in
+// speckle-noise "grain" sprite the timer hand used to use (see the old
+// grainSprite in the timer IIFE, before Update 1.6 removed the glow from
+// the hand itself per separate feedback) -- built once here and stamped
+// per-particle in "lighter" blend mode instead of a flat fillRect.
+const PARTICLE_GRAIN_SIZE = 64;
+const particleGrainSprite = document.createElement("canvas");
+particleGrainSprite.width = PARTICLE_GRAIN_SIZE; particleGrainSprite.height = PARTICLE_GRAIN_SIZE;
+(function(){
+  const gctx = particleGrainSprite.getContext("2d");
+  const grad = gctx.createRadialGradient(
+    PARTICLE_GRAIN_SIZE/2, PARTICLE_GRAIN_SIZE/2, 0,
+    PARTICLE_GRAIN_SIZE/2, PARTICLE_GRAIN_SIZE/2, PARTICLE_GRAIN_SIZE/2);
+  grad.addColorStop(0, "rgba(255,255,255,.95)");
+  grad.addColorStop(0.4, "rgba(255,255,255,.35)");
+  grad.addColorStop(1, "rgba(255,255,255,0)");
+  gctx.fillStyle = grad;
+  gctx.fillRect(0, 0, PARTICLE_GRAIN_SIZE, PARTICLE_GRAIN_SIZE);
+  const imgData = gctx.getImageData(0, 0, PARTICLE_GRAIN_SIZE, PARTICLE_GRAIN_SIZE);
+  const d = imgData.data;
+  for(let i=0;i<d.length;i+=4){
+    const n = (Math.random()-0.5) * 100;
+    d[i+3] = Math.max(0, Math.min(255, d[i+3] + n));
+  }
+  gctx.putImageData(imgData, 0, 0);
+})();
+
 let burstCanvas = null, burstCtx = null, burstRafId = null, burstParticles = [];
 function ensureBurstCanvas(){
   if(burstCanvas) return;
@@ -838,9 +908,17 @@ function burstLoop(){
     const px = p.x + Math.cos(p.a) * r;
     const py = p.y + Math.sin(p.a) * r;
     const alpha = t < 0.55 ? Math.min(1, t / 0.15) : Math.max(0, 1 - (t - 0.55) / 0.45);
+    // Update 1.6: grain-sprite stamp (soft gradient + speckle noise, same
+    // technique as the timer hand used) in "lighter" blend mode instead of
+    // a flat glowing square -- plus a tiny bright core so each particle
+    // still reads as a distinct point up close, not just a soft blob.
+    const grainSize = p.size * 7;
+    burstCtx.save();
+    burstCtx.globalCompositeOperation = "lighter";
+    burstCtx.globalAlpha = alpha;
+    burstCtx.drawImage(particleGrainSprite, px - grainSize/2, py - grainSize/2, grainSize, grainSize);
+    burstCtx.restore();
     burstCtx.fillStyle = `rgba(${p.hue},${alpha})`;
-    burstCtx.shadowColor = `rgba(${p.hue},${Math.min(1, alpha + 0.2)})`;
-    burstCtx.shadowBlur = 6;
     burstCtx.fillRect(px - p.size/2, py - p.size/2, p.size, p.size);
   });
   burstCtx.restore();
@@ -1266,6 +1344,19 @@ function smoothPath(coords){
   }
   return d.trim();
 }
+// Update 1.6: the chart line itself already carries the last real value
+// forward (Update 1.4), but the big "latest" number badge above each chart
+// was still reading the raw last data point -- if that point's value was
+// 0/null (e.g. an unweighted set), the badge flashed "0" even though the
+// line stayed flat. Walk backward for the last real (non-zero, non-null)
+// value instead, same rule the chart line itself already follows.
+function lastRealValue(points, key){
+  for(let i = points.length - 1; i >= 0; i--){
+    const v = points[i][key];
+    if(v !== null && v !== undefined && v !== 0) return v;
+  }
+  return null;
+}
 function buildBigChart(points, xKey, yKey, unit){
   const w = 320, h = 260, padL = 34, padR = 8, padT = 10, padB = 24;
   if(points.length === 0) return '<div class="empty-note">Noch keine Daten für diese Übung.</div>';
@@ -1475,22 +1566,20 @@ async function renderProgress(){
   const pages = [];
   const bw = progress.bodyweight || [];
   pages.push({ name: "Körpergewicht", muscle: "Verlauf", unit: "kg",
-    latest: bw.length ? bw[bw.length-1].kg : null,
+    latest: lastRealValue(bw, "kg"),
     html: buildBigChart(bw, "date", "kg") });
 
   const entries = Object.entries(progress.exercises || {});
   entries.sort((a,b)=> b[1].length - a[1].length);
   entries.forEach(([name, points])=>{
-    const latest = points[points.length-1];
     pages.push({ name: name.replace(" (Supported)","").replace(" (Supported",""), muscle: "Gewicht", unit: "kg",
-      latest: latest.weight, html: buildBigChart(points, "date", "weight") });
+      latest: lastRealValue(points, "weight"), html: buildBigChart(points, "date", "weight") });
   });
 
   const repsEntries = Object.entries(progress.reps_exercises || {});
   repsEntries.forEach(([name, points])=>{
-    const latest = points[points.length-1];
     pages.push({ name: name.replace(" (Supported)","").replace(" (Supported",""), muscle: "Wiederholungen", unit: "wdh",
-      latest: latest.reps, html: buildBigChart(points, "date", "reps") });
+      latest: lastRealValue(points, "reps"), html: buildBigChart(points, "date", "reps") });
   });
 
   carousel.innerHTML = pages.map((p, i) => `
@@ -1791,40 +1880,19 @@ function renderCalStrip(history){
   let totalSeconds = 0, dragging = false, lastX = 0, accumDeg = 0;
   let running = false, remainingSeconds = 0, runStartTs = 0, runDurationSeconds = 0, rafId = null;
   let windTotalAtRelease = 0;
-  // Update 1.3.2: think of it like winding a real kitchen timer -- drag
-  // from 12 toward 3 (i.e. rightward, a clockwise motion at the top of the
-  // dial) to wind up time. A plain horizontal drag is unambiguous no matter
-  // where on the dial you touch: right always adds time, left removes it.
-  // DEG_PER_PX keeps the same feel as before -- dragging all the way across
-  // the dial's diameter is about one full rotation.
-  const DEG_PER_PX = 180 / (Math.PI * R);
+  // Update 1.6: winding sensitivity fix. The Update 1.3.2 formula had a
+  // real bug -- it divided by the dial's *circumference* (Math.PI * R) even
+  // though its own comment said the intent was "dragging across the dial's
+  // diameter is about one full rotation." That stray factor of π made the
+  // dial ~4x less sensitive than intended: winding even one minute needed
+  // roughly 790px of continuous horizontal drag, more than a phone screen
+  // is wide -- so on mobile you'd run out of room and lift your finger
+  // mid-drag, which immediately released and started the (barely-wound)
+  // countdown. That's the "unmöglich sie aufzuziehen" bug. Fixed by
+  // actually matching the stated intent: dragging the dial's diameter
+  // (2R, ~250px here) now yields one full lap.
+  const DEG_PER_PX = 180 / R;
   function normDeg(d){ let x = d % 360; if(x<0) x+=360; return x; }
-
-  // Update 1.4: precompute a small radial "grain" sprite once -- a soft
-  // white glow with faint speckle noise baked into its alpha channel --
-  // and stamp it onto the hand every frame instead of generating noise
-  // per-frame (would be far too slow at 60fps). Matches the chart-line
-  // grain-glow filter's "grainy, wider-reaching glow" look, per feedback
-  // ("der glow sollte grain haben und weiter strahlen").
-  const GRAIN_SIZE = 110;
-  const grainSprite = document.createElement("canvas");
-  grainSprite.width = GRAIN_SIZE; grainSprite.height = GRAIN_SIZE;
-  (function(){
-    const gctx = grainSprite.getContext("2d");
-    const grad = gctx.createRadialGradient(GRAIN_SIZE/2,GRAIN_SIZE/2,0, GRAIN_SIZE/2,GRAIN_SIZE/2,GRAIN_SIZE/2);
-    grad.addColorStop(0, "rgba(255,255,255,.85)");
-    grad.addColorStop(0.45, "rgba(255,255,255,.28)");
-    grad.addColorStop(1, "rgba(255,255,255,0)");
-    gctx.fillStyle = grad;
-    gctx.fillRect(0,0,GRAIN_SIZE,GRAIN_SIZE);
-    const imgData = gctx.getImageData(0,0,GRAIN_SIZE,GRAIN_SIZE);
-    const d = imgData.data;
-    for(let i=0;i<d.length;i+=4){
-      const n = (Math.random()-0.5) * 90;
-      d[i+3] = Math.max(0, Math.min(255, d[i+3] + n));
-    }
-    gctx.putImageData(imgData, 0, 0);
-  })();
 
   function draw(handDeg){
     ctx.clearRect(0,0,CSS_SIZE,CSS_SIZE);
@@ -1858,26 +1926,13 @@ function renderCalStrip(history){
     const tipX = cx + Math.cos(handA)*handLen, tipY = cy + Math.sin(handA)*handLen;
     const b1x = cx + Math.cos(perp)*baseHW, b1y = cy + Math.sin(perp)*baseHW;
     const b2x = cx - Math.cos(perp)*baseHW, b2y = cy - Math.sin(perp)*baseHW;
-    // Update 1.3.2/1.4: white glow on the hand, matching the chart lines --
-    // widened further in 1.4 ("weiter strahlen") plus a grainy speckled
-    // sprite stamped along the hand in "lighter" blend mode for texture.
-    ctx.save();
-    ctx.shadowColor = "rgba(255,255,255,.85)";
-    ctx.shadowBlur = 16;
+    // Update 1.6: glow removed per feedback ("mach vom Zeiger der Sanduhr
+    // das Glow weg!") -- back to the plain flat white needle with just a
+    // thin --ink outline for contrast, same shape as Update 1.2.
     ctx.beginPath();
     ctx.moveTo(b1x, b1y); ctx.lineTo(tipX, tipY); ctx.lineTo(b2x, b2y); ctx.closePath();
     ctx.fillStyle = "#ffffff"; ctx.fill();
-    ctx.restore();
     ctx.strokeStyle = ink; ctx.globalAlpha = 0.5; ctx.lineWidth = 1; ctx.stroke(); ctx.globalAlpha = 1;
-
-    ctx.save();
-    ctx.globalCompositeOperation = "lighter";
-    ctx.globalAlpha = 0.55;
-    ctx.drawImage(grainSprite, tipX - GRAIN_SIZE/2, tipY - GRAIN_SIZE/2, GRAIN_SIZE, GRAIN_SIZE);
-    ctx.globalAlpha = 0.35;
-    const midX = (cx + tipX) / 2, midY = (cy + tipY) / 2;
-    ctx.drawImage(grainSprite, midX - GRAIN_SIZE*0.4, midY - GRAIN_SIZE*0.4, GRAIN_SIZE*0.8, GRAIN_SIZE*0.8);
-    ctx.restore();
   }
 
   function secondsToLabel(s){ s = Math.max(0, Math.round(s)); return Math.floor(s/60) + ":" + String(s%60).padStart(2,"0"); }
@@ -2011,8 +2066,62 @@ function renderCalStrip(history){
   window.addEventListener("mouseup", (e)=>{ if(dragging) onEnd(e); });
 })();
 
+/* ================= login (Update 1.6) ================= */
+function showLogin(){
+  $("lock-screen").classList.add("hidden");
+  $("login-screen").classList.remove("hidden");
+  setTimeout(()=> $("login-username").focus(), 50);
+}
+function hideLogin(){
+  $("login-screen").classList.add("hidden");
+  $("lock-screen").classList.remove("hidden");
+}
+$("login-form").addEventListener("submit", async (e)=>{
+  e.preventDefault();
+  const username = $("login-username").value.trim();
+  const password = $("login-password").value;
+  const errEl = $("login-err");
+  errEl.textContent = "";
+  if(!username || !password){ errEl.textContent = "Bitte Nutzername und Passwort eingeben."; return; }
+  const btn = $("login-submit-btn");
+  btn.disabled = true; btn.textContent = "…";
+  try{
+    const res = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({username, password}),
+    });
+    if(!res.ok){
+      const body = await res.json().catch(()=>({}));
+      errEl.textContent = body.detail || "Anmeldung fehlgeschlagen.";
+      btn.disabled = false; btn.textContent = "Anmelden";
+      return;
+    }
+    const data = await res.json();
+    USER_ID = data.user_id;
+    localStorage.setItem("bymgro_user_id", USER_ID);
+    hideLogin();
+    bootstrap();
+  }catch(err){
+    errEl.textContent = "Verbindung fehlgeschlagen.";
+    btn.disabled = false; btn.textContent = "Anmelden";
+  }
+});
+// Update 1.6: logout just clears the stored identity and reloads -- the
+// USER_ID-is-null branch below then shows the login screen again on its own,
+// no separate logout endpoint needed since there's no server-side session.
+$("logout-btn").addEventListener("click", ()=>{
+  localStorage.removeItem("bymgro_user_id");
+  location.reload();
+});
+
 /* ================= boot ================= */
-bootstrap();
+if(USER_ID){
+  $("lock-screen").classList.remove("hidden");
+  bootstrap();
+}else{
+  showLogin();
+}
 </script>
 </body>
 </html>

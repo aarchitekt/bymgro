@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime
+import uuid
 from pathlib import Path
 from typing import List, Optional
 
@@ -11,7 +12,7 @@ from pydantic import BaseModel
 
 from backend import storage
 
-APP_VERSION = "1.5"
+APP_VERSION = "1.6"
 
 storage.init_db()
 
@@ -101,6 +102,11 @@ class AddFriendIn(BaseModel):
     code: str
 
 
+class LoginIn(BaseModel):
+    username: str
+    password: str
+
+
 def today() -> str:
     return datetime.date.today().isoformat()
 
@@ -116,6 +122,32 @@ def health():
 def api_init(body: InitIn, x_user_id: str = Header(..., alias="X-User-Id")):
     user = storage.get_or_create_user(x_user_id, body.display_name)
     return user
+
+
+# Update 1.6: real username/password login, layered on top of the existing
+# anonymous X-User-Id header scheme rather than replacing it -- this just
+# resolves username+password to a user_id, which the frontend then stores
+# in localStorage exactly where the old auto-generated UUID used to live.
+# Unknown username = auto-register (new user + credential), same
+# low-friction "just works" pattern the anonymous flow already had, except
+# now the identity is recoverable across a storage reset as long as you
+# remember the username/password.
+@app.post("/api/auth/login")
+def api_login(body: LoginIn):
+    username = body.username.strip()
+    password = body.password
+    if not username or not password:
+        raise HTTPException(400, "Nutzername und Passwort erforderlich")
+    existing_uid = storage.verify_login(username, password)
+    if existing_uid:
+        user = storage.get_or_create_user(existing_uid)
+        return {"user_id": existing_uid, "display_name": user.get("display_name")}
+    if storage.credential_exists(username):
+        raise HTTPException(401, "Falsches Passwort")
+    new_uid = str(uuid.uuid4())
+    user = storage.get_or_create_user(new_uid)
+    storage.create_credential(new_uid, username, password)
+    return {"user_id": new_uid, "display_name": user.get("display_name")}
 
 
 # ---------- API: plan / profile ----------

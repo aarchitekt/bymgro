@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime
+import hashlib
 import json
 import os
 import secrets
@@ -11,6 +12,11 @@ from pathlib import Path
 
 DB_PATH = os.environ.get("BYMGRO_DB_PATH", str(Path(__file__).resolve().parent.parent / "bymgro.db"))
 SEED_PATH = Path(__file__).resolve().parent / "seed_data.json"
+# Update 1.6: real login. AAMEND_USER_ID is a fixed (not random) id so the
+# migration that seeds this account is idempotent across restarts/deploys --
+# see _seed_aamend_account() below for why this exists at all.
+AAMEND_USER_ID = "user_aamend"
+SEED_AAMEND_HISTORY_PATH = Path(__file__).resolve().parent / "seed_aamend_history.json"
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS users (
@@ -124,6 +130,18 @@ CREATE TABLE IF NOT EXISTS user_achievements (
     unlocked_at TEXT NOT NULL,
     UNIQUE(user_id, achievement_id)
 );
+
+-- Update 1.6: real username/password login, added on top of the existing
+-- anonymous-UUID identity model rather than replacing it -- a login just
+-- resolves username+password to a user_id, which then flows through the
+-- exact same X-User-Id header every other endpoint already uses.
+CREATE TABLE IF NOT EXISTS auth_credentials (
+    username TEXT PRIMARY KEY,
+    salt TEXT NOT NULL,
+    password_hash TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
 """
 
 
@@ -160,6 +178,7 @@ def _migrate(conn: sqlite3.Connection):
         conn.execute("ALTER TABLE session_sets ADD COLUMN logged INTEGER NOT NULL DEFAULT 1")
 
     _fix_session_sets_fk(conn)
+    _seed_aamend_account(conn)
 
 
 def _fix_session_sets_fk(conn: sqlite3.Connection):
@@ -222,6 +241,102 @@ def _archive_legacy_single_user_schema(conn: sqlite3.Connection):
         if exists:
             conn.execute(f"ALTER TABLE {t} RENAME TO {t}_legacy_pre_1_1")
     conn.executescript(SCHEMA)
+
+
+def _hash_password(password: str, salt: str) -> str:
+    return hashlib.sha256(f"{salt}:{password}".encode("utf-8")).hexdigest()
+
+
+def create_credential(user_id: str, username: str, password: str):
+    username = username.strip().lower()
+    salt = secrets.token_hex(8)
+    pw_hash = _hash_password(password, salt)
+    with get_conn() as conn:
+        conn.execute(
+            "INSERT INTO auth_credentials (username, salt, password_hash, user_id, created_at) VALUES (?,?,?,?,datetime('now'))",
+            (username, salt, pw_hash, user_id),
+        )
+
+
+def credential_exists(username: str) -> bool:
+    username = username.strip().lower()
+    with get_conn() as conn:
+        return conn.execute("SELECT 1 FROM auth_credentials WHERE username=?", (username,)).fetchone() is not None
+
+
+def verify_login(username: str, password: str) -> str | None:
+    username = username.strip().lower()
+    with get_conn() as conn:
+        row = conn.execute("SELECT * FROM auth_credentials WHERE username=?", (username,)).fetchone()
+        if not row or _hash_password(password, row["salt"]) != row["password_hash"]:
+            return None
+        return row["user_id"]
+
+
+def _seed_aamend_account(conn: sqlite3.Connection):
+    """Update 1.6: real username/password login was added because the old
+    anonymous-localStorage-only identity had no recovery path -- every time
+    storage got cleared/reset on the real device, a fresh throwaway UUID got
+    created and the real training history stayed stuck under the old
+    unreachable one (confirmed happening: 4 distinct anonymous users existed
+    in prod, all created within the same session). This seeds one durable
+    account (username 'aamend') bound to a *fixed* user_id (AAMEND_USER_ID,
+    not randomly generated) so this function is idempotent across restarts
+    -- guarded on the credential row not existing yet, so it only ever runs
+    its INSERTs once, on whichever deploy first creates the 'auth_credentials'
+    table. Also imports the user's real logged history from their own Excel
+    tracker (seed_aamend_history.json, parsed from "NO SKINNY FAT PLS.xlsx")
+    so the account isn't empty on first login -- only runs that import if
+    this user has zero workout_sessions yet, so it never duplicates data on
+    a later restart."""
+    if conn.execute("SELECT 1 FROM auth_credentials WHERE username='aamend'").fetchone():
+        return
+
+    user = conn.execute("SELECT * FROM users WHERE id=?", (AAMEND_USER_ID,)).fetchone()
+    if not user:
+        code = gen_code()
+        while conn.execute("SELECT 1 FROM users WHERE code=?", (code,)).fetchone():
+            code = gen_code()
+        conn.execute(
+            "INSERT INTO users (id, code, display_name, created_at) VALUES (?,?,?,datetime('now'))",
+            (AAMEND_USER_ID, code, "Aaron"),
+        )
+        conn.execute("INSERT INTO profile (user_id, updated_at) VALUES (?, datetime('now'))", (AAMEND_USER_ID,))
+        _seed_plan_default(conn, AAMEND_USER_ID)
+
+    salt = secrets.token_hex(8)
+    pw_hash = _hash_password("bymgro", salt)
+    conn.execute(
+        "INSERT INTO auth_credentials (username, salt, password_hash, user_id, created_at) VALUES (?,?,?,?,datetime('now'))",
+        ("aamend", salt, pw_hash, AAMEND_USER_ID),
+    )
+
+    has_sessions = conn.execute(
+        "SELECT 1 FROM workout_sessions WHERE user_id=? LIMIT 1", (AAMEND_USER_ID,)
+    ).fetchone()
+    if not has_sessions and SEED_AAMEND_HISTORY_PATH.exists():
+        try:
+            history = json.loads(SEED_AAMEND_HISTORY_PATH.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            history = []
+        for sess in history:
+            cur = conn.execute(
+                """INSERT INTO workout_sessions (user_id, date, day_type, duration_min, bodyweight_kg, created_at, finished)
+                   VALUES (?,?,?,?,?,datetime('now'),1)""",
+                (AAMEND_USER_ID, sess["date"], sess["day_type"], sess.get("duration_min"), sess.get("bodyweight_kg")),
+            )
+            sid = cur.lastrowid
+            for s in sess.get("sets", []):
+                conn.execute(
+                    """INSERT INTO session_sets (session_id, exercise_name, set_index, weight, reps, value_text, logged)
+                       VALUES (?,?,?,?,?,?,1)""",
+                    (sid, s["exercise_name"], s["set_index"], s.get("weight"), s.get("reps"), s.get("value_text")),
+                )
+            if sess.get("bodyweight_kg") is not None:
+                conn.execute(
+                    "INSERT INTO bodyweight_log (user_id, date, kg) VALUES (?,?,?)",
+                    (AAMEND_USER_ID, sess["date"], sess["bodyweight_kg"]),
+                )
 
 
 def gen_code() -> str:
