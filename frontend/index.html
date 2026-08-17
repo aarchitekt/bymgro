@@ -183,7 +183,7 @@
   .day-badge { display:inline-block; padding: 5px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; background: var(--panel); border: 1px solid var(--line); color: var(--ink); }
 
 
-  .exercise-card { flex: 1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; gap: 8px; padding: 6px 0; }
+  .exercise-card { flex: 1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; gap: 4px; padding: 6px 0; }
   .exercise-muscle { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .05em; opacity: .7; }
   .exercise-name { font-size: 25px; font-weight: 700; margin: 2px 0; }
 
@@ -191,28 +191,42 @@
      "an einem horizontalen Rad drehen nicht + und - druecken": lets you land
      on any 0.1 value (e.g. 16.5), which fixed-1.25/whole-unit +/- taps never
      could (that was the literal "Incline Benchpress kann man nicht auf 14
-     stellen" bug: 14 simply isn't a multiple of the old 1.25 step). */
-  .wheel-group { display:flex; flex-direction:column; align-items:center; gap: 6px; margin-top: 14px; }
+     stellen" bug: 14 simply isn't a multiple of the old 1.25 step).
+     Update 1.8.2: number sits right on the wheel now (margin-top/gap both
+     shrunk) instead of floating above it with a big gap, per feedback
+     ("die Zahl sollte direkt auf dem Rad stehen") -- reclaims vertical
+     space so the set pills fit on screen without the finish-pill floating
+     over them on a small phone. */
+  .wheel-group { display:flex; flex-direction:column; align-items:center; gap: 0; margin-top: 4px; }
   .stepper-value { min-width: 100px; text-align:center; }
-  .stepper-value .num { font-size: 38px; font-weight: 800; line-height: 1; }
+  .stepper-value .num { font-size: 34px; font-weight: 800; line-height: 1; }
   .stepper-value .unit { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
-  .wheel-canvas { width: 240px; height: 46px; touch-action: none; cursor: grab; }
+  .wheel-canvas { width: 240px; height: 40px; touch-action: none; cursor: grab; }
   .wheel-canvas:active { cursor: grabbing; }
 
-  .set-pills { display:flex; gap: 10px; margin-top: 22px; }
+  .set-pills { display:flex; gap: 10px; margin-top: 12px; }
   .set-pill { width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--line); display:flex; align-items:center; justify-content:center; font-size: 14px; font-weight:700; color: var(--muted); cursor: pointer; background: none; transition: all .15s ease; }
   .set-pill.done { border-color: var(--accent); background: var(--accent); color: #fff; }
   .set-pill.pop { animation: popIn .3s cubic-bezier(.3,1.5,.5,1); }
 
   .quiet-row { position: absolute; bottom: 14px; right: 14px; display:flex; gap:8px; }
 
-  /* ---------- Update 1.4: whole-workout overview strip (was just dots) ---------- */
-  .ex-overview { display:flex; gap:8px; overflow-x:auto; padding: 2px 4px 8px; margin: 2px 0 0; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+  /* ---------- Update 1.8.2: exercise list moved to a narrow column on the
+     left edge, replacing the Update 1.4 horizontal top strip -- per
+     feedback ("die Uebungen sollte man vielleicht an der Seite anordnen"),
+     matching the up/down arrow navigation better than a left/right
+     scrolling row did. Positioned absolutely inside #workout-active
+     (already position:relative) so it doesn't take space out of the
+     .exercise-card flex column; .exercise-card gets left padding instead
+     (see #workout-active > .exercise-card rule) so its centered content
+     doesn't sit underneath the strip. ---------- */
+  .ex-overview { position:absolute; left:2px; top:2px; bottom:60px; width:64px; display:flex; flex-direction:column; gap:6px; overflow-y:auto; overflow-x:hidden; padding: 2px; -webkit-overflow-scrolling:touch; scrollbar-width:none; z-index: 5; }
   .ex-overview::-webkit-scrollbar { display:none; }
-  .ex-chip { flex-shrink:0; display:flex; align-items:center; gap:5px; padding:7px 12px; border-radius:999px; border:1px solid var(--line); background:var(--panel); font-size:11.5px; font-weight:600; color:var(--muted); white-space:nowrap; cursor:pointer; transition: all .18s ease; }
+  .ex-chip { flex-shrink:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; padding:7px 4px; border-radius:12px; border:1px solid var(--line); background:var(--panel); font-size:9.5px; line-height:1.15; font-weight:600; color:var(--muted); text-align:center; word-break:break-word; cursor:pointer; transition: all .18s ease; }
   .ex-chip.now { border-color: var(--ink); background: var(--ink); color: var(--on-ink); }
   .ex-chip.done { color: var(--accent); border-color: var(--accent); }
   .ex-chip .chip-check { width:12px; height:12px; flex-shrink:0; }
+  #workout-active .exercise-card { padding-left: 70px; }
 
   /* ---------- Update 1.8: big plain arrows now stacked above/below the
      steppers (prev = up, next = down) instead of flanking left/right:
@@ -226,7 +240,7 @@
   .stepper-col { display:flex; flex-direction:column; gap: 2px; }
 
   /* ---------- Update 1.4: AI-coach bubble under the set pills ---------- */
-  .coach-bubble { display:flex; align-items:flex-start; gap:8px; max-width: 300px; margin: 18px auto 0; padding: 10px 14px; border-radius: 16px 16px 16px 4px; background: var(--panel); border: 1px solid var(--line); font-size: 12.5px; line-height: 1.4; color: var(--ink); cursor: pointer; transition: transform .12s ease; }
+  .coach-bubble { display:flex; align-items:flex-start; gap:8px; max-width: 300px; margin: 10px auto 0; padding: 10px 14px; border-radius: 16px 16px 16px 4px; background: var(--panel); border: 1px solid var(--line); font-size: 12.5px; line-height: 1.4; color: var(--ink); cursor: pointer; transition: transform .12s ease; }
   .coach-bubble:active { transform: scale(.97); }
   .coach-bubble .ci { width:16px; height:16px; flex-shrink:0; margin-top:1px; color: var(--accent); }
   .coach-bubble.hidden { display:none; }
@@ -1106,7 +1120,10 @@ function renderOverview(){
     wrap.appendChild(chip);
   });
   const nowChip = wrap.children[state.exIndex];
-  if(nowChip) nowChip.scrollIntoView({behavior:"smooth", inline:"center", block:"nearest"});
+  // Update 1.8.2: the strip scrolls vertically now (side column, not a
+  // horizontal row), so the current chip needs to be centered on the
+  // block axis, not the inline one.
+  if(nowChip) nowChip.scrollIntoView({behavior:"smooth", block:"center", inline:"nearest"});
 }
 
 function renderSetPills(){
@@ -1367,24 +1384,13 @@ $("coach-bubble").addEventListener("click", ()=>{
   spawnBurst(r.left + 20, r.top + 14, {count:14, radius:22, life:380});
 });
 
-/* ================= Update 1.4: swipe between exercises ================= */
-(function(){
-  const card = document.querySelector(".exercise-card");
-  let sx = 0, sy = 0, tracking = false;
-  card.addEventListener("touchstart", (e)=>{
-    const t = e.touches[0]; sx = t.clientX; sy = t.clientY; tracking = true;
-  }, {passive:true});
-  card.addEventListener("touchend", (e)=>{
-    if(!tracking) return;
-    tracking = false;
-    const t = e.changedTouches[0];
-    const dx = t.clientX - sx, dy = t.clientY - sy;
-    if(Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy)*1.5){
-      if(dx < 0 && state.exIndex < state.session.exercises.length - 1){ state.exIndex++; renderExercise(); }
-      else if(dx > 0 && state.exIndex > 0){ state.exIndex--; renderExercise(); }
-    }
-  });
-})();
+/* Update 1.8.2: the swipe-between-exercises gesture (Update 1.4) is gone.
+   It listened for a horizontal drag anywhere on .exercise-card, which
+   includes the weight/reps wheels: dragging the wheel to change a value
+   was a horizontal drag too, so it kept firing an exercise-switch at the
+   same time ("wenn ich versuche das Rad zu drehen ... swiped es zwischen
+   den Uebungen"). Per explicit feedback, exercise navigation now goes
+   through the up/down arrows only. */
 
 $("prev-ex-btn").addEventListener("click", ()=>{ if(state.exIndex > 0){ state.exIndex--; renderExercise(); } });
 $("next-ex-btn").addEventListener("click", ()=>{
