@@ -1068,6 +1068,14 @@ function renderExercise(){
   $("w-unit").textContent = ex.unit;
   $("r-val").textContent = fmt1(state.reps);
   $("r-unit").textContent = ex.kind === "time" ? "sek" : (ex.kind === "warmup" ? "min" : "wdh");
+  // Update 1.8 fix: the wheel canvases first measure themselves at page
+  // load, while the workout screen is still display:none (a 0x0 box), and
+  // that measurement never repeats on its own since only a real browser
+  // "resize" event refires it. Re-measure every time an exercise renders,
+  // now that the screen is actually visible, or the wheel stays a blank,
+  // frozen 0x0 canvas forever (looked broken/unadjustable, per feedback).
+  weightWheel.resize();
+  repsWheel.resize();
   weightWheel.setValue(state.weight, false);
   repsWheel.setValue(state.reps, false);
 
@@ -1305,7 +1313,7 @@ function makeWheel(canvasId, opts){
   window.addEventListener("resize", resize);
   resize();
 
-  return { setValue };
+  return { setValue, resize };
 }
 
 const weightWheel = makeWheel("w-wheel", { step: 0.1, min: 0,
