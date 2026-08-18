@@ -12,7 +12,7 @@ from pydantic import BaseModel
 
 from backend import storage
 
-APP_VERSION = "1.8.4"
+APP_VERSION = "1.8.5"
 
 storage.init_db()
 
@@ -69,6 +69,9 @@ class SetIn(BaseModel):
 
 class StartSessionIn(BaseModel):
     day_type: Optional[str] = None
+    # Update 1.8.5: lets the frontend create a session for an arbitrary past
+    # date (retroactive/"nachtragen" entries), not just today.
+    date: Optional[str] = None
 
 
 class FinishSessionIn(BaseModel):
@@ -191,9 +194,10 @@ def api_start_workout(body: StartSessionIn, X_User_Id: Optional[str] = Header(No
     day_type = body.day_type or storage.next_day_type(u)
     if day_type not in ("push", "pull"):
         raise HTTPException(400, "day_type must be 'push' or 'pull'")
-    session_id = storage.create_session(u, day_type, today())
+    session_date = body.date or today()
+    session_id = storage.create_session(u, day_type, session_date)
     plan = storage.get_plan(u)
-    return {"session_id": session_id, "day_type": day_type, "date": today(), "exercises": plan.get(day_type, [])}
+    return {"session_id": session_id, "day_type": day_type, "date": session_date, "exercises": plan.get(day_type, [])}
 
 
 @app.post("/api/workout/{session_id}/set")

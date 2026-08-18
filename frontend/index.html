@@ -130,6 +130,8 @@
   .xt-name-col .xl { color: var(--muted); font-size: 10px; font-style: italic; }
   .xt-corner { position: sticky; left: 0; top: 0; z-index: 4; background: var(--bg); }
   .xt-date-head { position: sticky; top: 0; z-index: 3; background: var(--bg); font-weight: 700; font-size: 10px; padding: 6px 2px; }
+  .xt-date-edit { cursor:pointer; text-decoration: underline dotted; text-underline-offset: 2px; }
+  .xt-date-head.unfinished { color: var(--muted); }
   .xt-set-head { position: sticky; top: 25px; z-index: 3; background: var(--bg); color: var(--muted); font-size: 9px; font-weight: 600; padding: 3px 2px; }
   .xt-row-push { background: color-mix(in srgb, var(--accent) 9%, transparent); }
   .xt-row-pull { background: color-mix(in srgb, var(--good) 9%, transparent); }
@@ -150,11 +152,14 @@
   .xt-cal-wd-row { display:grid; grid-template-columns: repeat(7,1fr); text-align:center; font-size:10px; color:var(--muted); margin-bottom:6px; letter-spacing:.03em; }
   .xt-cal-grid { display:grid; grid-template-columns: repeat(7,1fr); gap:5px; }
   .xt-cal-cell { position:relative; aspect-ratio:1; border-radius:10px; display:flex; align-items:center; justify-content:center;
-    font-size:12px; background:var(--panel); border:1px solid var(--line); color:var(--muted); }
-  .xt-cal-cell.empty { background:none; border:none; }
+    font-size:12px; background:var(--panel); border:1px solid var(--line); color:var(--muted); cursor:pointer; }
+  .xt-cal-cell.empty { background:none; border:none; cursor:default; }
   .xt-cal-cell.push { background:color-mix(in srgb, var(--accent) 28%, var(--bg)); border-color:var(--accent); color:var(--ink); font-weight:700; cursor:pointer; }
   .xt-cal-cell.pull { background:color-mix(in srgb, var(--good) 28%, var(--bg)); border-color:var(--good); color:var(--ink); font-weight:700; cursor:pointer; }
   .xt-cal-cell.both { background:linear-gradient(135deg, color-mix(in srgb, var(--accent) 32%, var(--bg)) 50%, color-mix(in srgb, var(--good) 32%, var(--bg)) 50%); border-color:var(--ink); color:var(--ink); font-weight:700; cursor:pointer; }
+  /* Update 1.8.5: a session that was started but never explicitly finished
+     -- previously invisible entirely, now shown with a dashed border. */
+  .xt-cal-cell.unfinished { border-style:dashed; }
   .xt-cal-cell.today { box-shadow: 0 0 0 2px var(--ink) inset; }
   .xt-cal-cell.streak { box-shadow: 0 0 0 2px #ff8a3d inset; }
   .xt-cal-cell.streak.today { box-shadow: 0 0 0 2px #ff8a3d inset, 0 0 0 4px var(--ink) inset; }
@@ -165,6 +170,8 @@
   .xt-detail-card.push { border-color: var(--accent); }
   .xt-detail-card.pull { border-color: var(--good); }
   .xt-detail-head { display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; margin-bottom:8px; }
+  .xt-unfinished-badge { font-size:10px; font-weight:700; color:var(--muted); border:1px dashed var(--muted); border-radius:6px; padding:1px 6px; }
+  .xt-edit-btn { margin-left:auto; }
   .xt-detail-ex { display:flex; justify-content:space-between; gap:10px; font-size:12.5px; padding:5px 0; border-bottom:1px solid var(--line); }
   .xt-detail-ex:last-child { border-bottom:none; }
   .xt-detail-ex .xv { color:var(--muted); text-align:right; }
@@ -524,7 +531,7 @@
           <!-- Update 1.3.2: always-visible "Training beenden" pill (was a
                tiny icon-only button easy to miss) -- present regardless of
                which exercise is currently shown. -->
-          <button class="finish-pill" id="finish-workout-btn"><span id="finish-pill-icon"></span>Training beenden</button>
+          <button class="finish-pill" id="finish-workout-btn"><span id="finish-pill-icon"></span><span id="finish-pill-label">Training beenden</span></button>
         </div>
       </div>
     </section>
@@ -724,7 +731,7 @@
 </div>
 
 <script>
-const APP_VERSION = "1.8.4";
+const APP_VERSION = "1.8.5";
 document.getElementById("app-version-line").textContent = "bymgro v" + APP_VERSION;
 
 /* ================= ICONS (monochrome, currentColor) ================= */
@@ -1014,7 +1021,11 @@ async function bootstrap(){
 
 /* ================= WORKOUT ================= */
 const state = { plan: null, nextDayType: "push", session: null, exIndex: 0, loggedSets: {}, weight: 0, reps: 0,
-  progressData: null, prBests: {} };
+  progressData: null, prBests: {},
+  // Update 1.8.5: non-null while correcting/adding a past training from
+  // Kalender -- reuses this exact same exercise/wheel screen, just with a
+  // different exit path (no bodyweight prompt, no "next day" reset).
+  editingSessionId: null };
 function todayLabel(){ return new Date().toLocaleDateString("de-DE", {weekday:"long", day:"numeric", month:"long"}); }
 $("workout-date").textContent = todayLabel();
 
@@ -1048,8 +1059,85 @@ $("start-btn").addEventListener("click", async ()=>{
   catch(e){ state.progressData = {exercises:{}, reps_exercises:{}, bodyweight:[]}; }
   $("workout-idle").style.display = "none";
   $("workout-active").style.display = "flex";
+  $("workout-date").textContent = todayLabel();
+  $("finish-pill-label").textContent = "Training beenden";
   renderExercise();
 });
+
+/* Update 1.8.5: retroactive correct/add-training entry points, per explicit
+   feedback that Kalender/Tabelle showed data but had no way to fix or add
+   to it ("man kann tabelle udn kalendar nicht bearbeiten"). Both functions
+   below land in this exact same exercise/wheel screen -- toggleSet() already
+   persists every tap immediately via the API regardless of the session's
+   finished status, so no separate "save" step is needed, just a different
+   entry/exit path than the normal today-workout flow. */
+function dateLabelFor(iso){
+  return new Date(iso + "T00:00:00").toLocaleDateString("de-DE", {weekday:"long", day:"numeric", month:"long"});
+}
+async function enterEditSession(sess){
+  if(!state.plan) state.plan = await api("/api/plan");
+  const exercises = state.plan[sess.day_type] || [];
+  state.session = { session_id: sess.id, day_type: sess.day_type, date: sess.date, exercises };
+  state.exIndex = 0;
+  state.editingSessionId = sess.id;
+  state.loggedSets = {};
+  exercises.forEach(ex => state.loggedSets[ex.name] = new Array(ex.target_sets).fill(null));
+  (sess.sets || []).forEach(s=>{
+    if(!s.logged) return;
+    if(!state.loggedSets[s.exercise_name]) state.loggedSets[s.exercise_name] = [];
+    while(state.loggedSets[s.exercise_name].length <= s.set_index) state.loggedSets[s.exercise_name].push(null);
+    state.loggedSets[s.exercise_name][s.set_index] = {
+      exercise_name: s.exercise_name, set_index: s.set_index,
+      weight: s.weight, reps: s.reps, value_text: s.value_text, logged: true,
+    };
+  });
+  state.prBests = {};
+  try{ state.progressData = await api("/api/progress"); }
+  catch(e){ state.progressData = {exercises:{}, reps_exercises:{}, bodyweight:[]}; }
+  if(!exercises.length){ toast("Kein Plan für diesen Tag-Typ gefunden"); return; }
+  showScreen("workout-screen");
+  $("workout-idle").style.display = "none";
+  $("workout-active").style.display = "flex";
+  $("workout-date").textContent = dateLabelFor(sess.date) + " · Bearbeiten";
+  $("finish-pill-label").textContent = "Fertig";
+  renderExercise();
+}
+async function startPastSession(dateIso, dayType){
+  try{
+    const resp = await api("/api/workout/start", {method:"POST", body: JSON.stringify({day_type: dayType, date: dateIso})});
+    if(!state.plan) state.plan = await api("/api/plan");
+    state.session = resp;
+    state.exIndex = 0;
+    state.editingSessionId = resp.session_id;
+    state.loggedSets = {};
+    resp.exercises.forEach(ex => state.loggedSets[ex.name] = new Array(ex.target_sets).fill(null));
+    state.prBests = {};
+    try{ state.progressData = await api("/api/progress"); }
+    catch(e){ state.progressData = {exercises:{}, reps_exercises:{}, bodyweight:[]}; }
+    showScreen("workout-screen");
+    $("workout-idle").style.display = "none";
+    $("workout-active").style.display = "flex";
+    $("workout-date").textContent = dateLabelFor(dateIso) + " · Nachtrag";
+    $("finish-pill-label").textContent = "Fertig";
+    renderExercise();
+  }catch(e){ toast("Konnte Training nicht anlegen"); }
+}
+function xtAddNewTraining(iso){
+  const label = dateLabelFor(iso);
+  const choice = prompt(`Neues Training für ${label} -- "push" oder "pull" eingeben:`, "push");
+  if(!choice) return;
+  const dt = choice.trim().toLowerCase();
+  if(dt !== "push" && dt !== "pull"){ toast("Bitte 'push' oder 'pull' eingeben"); return; }
+  startPastSession(iso, dt);
+}
+function exitEditSession(){
+  state.editingSessionId = null;
+  state.session = null;
+  renderIdle();
+  toast("Änderungen gespeichert", "check", 1800);
+  showScreen("progress-screen");
+  setStatsTab("calendar");
+}
 
 function currentExercise(){ return state.session.exercises[state.exIndex]; }
 
@@ -1405,9 +1493,13 @@ $("coach-bubble").addEventListener("click", ()=>{
 $("prev-ex-btn").addEventListener("click", ()=>{ if(state.exIndex > 0){ state.exIndex--; renderExercise(); } });
 $("next-ex-btn").addEventListener("click", ()=>{
   if(state.exIndex < state.session.exercises.length - 1){ state.exIndex++; renderExercise(); }
+  else if(state.editingSessionId) exitEditSession();
   else finishWorkout();
 });
-$("finish-workout-btn").addEventListener("click", finishWorkout);
+$("finish-workout-btn").addEventListener("click", ()=>{
+  if(state.editingSessionId) exitEditSession();
+  else finishWorkout();
+});
 
 async function finishWorkout(){
   const bwStr = prompt("Aktuelles Körpergewicht in kg (optional, Enter zum Überspringen):", "");
@@ -1689,17 +1781,20 @@ function renderXtTableView(){
       <button class="seg-btn ${xtDayType==='pull'?'on xt-pull-on':''}" data-type="pull">Pull</button>
     </div>`;
 
-  const sessions = (data.hist || []).filter(s => s.finished && s.day_type === xtDayType).slice()
+  // Update 1.8.5: include never-"finished" sessions too (see get_history()
+  // note) so a training that's still hanging around unfinished shows up
+  // here instead of silently vanishing.
+  const sessions = (data.hist || []).filter(s => s.day_type === xtDayType).slice()
     .sort((a,b)=> a.date.localeCompare(b.date) || a.id - b.id);
 
   if(!sessions.length){
     content.innerHTML = typeSwitchHtml
-      + `<div class="xt-empty-note">Noch keine abgeschlossenen ${xtDayType==='push'?'Push':'Pull'}-Workouts geloggt.</div>`;
+      + `<div class="xt-empty-note">Noch keine ${xtDayType==='push'?'Push':'Pull'}-Workouts geloggt.</div>`;
     wireXtTypeSwitch();
     return;
   }
 
-  const cols = sessions.map(s => ({ date: s.date, sets: s.sets || [] }));
+  const cols = sessions.map(s => ({ id: s.id, date: s.date, sets: s.sets || [], finished: s.finished }));
   const rows = (data.plan[xtDayType] || []).map(ex => ({
     name: ex.name, muscle: ex.muscle, kind: ex.kind, target: ex.target_sets || 3,
   }));
@@ -1739,7 +1834,10 @@ function renderXtTableView(){
     return `<tr class="xt-row-${xtDayType}">${nameCell}${cellsHtml(r, valueOf)}</tr>`;
   }
 
-  const dateHead = cols.map(c => `<th class="xt-date-head" colspan="${maxSets}">${xtShortDate(c.date)}</th>`).join("");
+  // Update 1.8.5: each date header is now a "Bearbeiten" entry point too --
+  // tapping it drops straight into the edit screen for that column's
+  // session, satisfying "man kann tabelle ... nicht bearbeiten".
+  const dateHead = cols.map(c => `<th class="xt-date-head xt-date-edit${c.finished?"":" unfinished"}" colspan="${maxSets}" data-session-id="${c.id}">${xtShortDate(c.date)}</th>`).join("");
   const setHead = cols.map(()=> SET_LABELS.slice(0,maxSets).map(l=>`<th class="xt-set-head">${l}</th>`).join("")).join("");
   const bodyRows = [];
   rows.forEach(r=>{
@@ -1757,7 +1855,13 @@ function renderXtTableView(){
         <tbody>${bodyRows.join("")}</tbody>
       </table>
     </div>
+    <div class="xt-empty-note" style="margin-top:6px;">Datum antippen zum Bearbeiten</div>
   `;
+  const sessById = {};
+  cols.forEach(c => sessById[c.id] = { id: c.id, day_type: xtDayType, date: c.date, sets: c.sets });
+  content.querySelectorAll(".xt-date-edit").forEach(th=>{
+    th.addEventListener("click", ()=> enterEditSession(sessById[th.dataset.sessionId]));
+  });
   wireXtTypeSwitch();
 }
 function wireXtTypeSwitch(){
@@ -1799,7 +1903,12 @@ function renderXtCalendarView(){
     const now = new Date();
     xtCalYear = now.getFullYear(); xtCalMonth = now.getMonth();
   }
-  const sessions = (xtLastData.hist || []).filter(s => s.finished);
+  // Update 1.8.5: no longer filters to finished sessions only -- the
+  // backend now also returns never-"finished" sessions (see get_history()),
+  // which is what made a real, actually-logged workout vanish from the
+  // calendar entirely. Unfinished days get a dashed "läuft" marker instead
+  // of being hidden.
+  const sessions = (xtLastData.hist || []);
   const byDate = {};
   sessions.forEach(s => (byDate[s.date] = byDate[s.date] || []).push(s));
   const streakDates = xtComputeCurrentStreakDates(Object.keys(byDate));
@@ -1822,11 +1931,18 @@ function renderXtCalendarView(){
       const hasPush = daySessions.some(s=>s.day_type==='push');
       const hasPull = daySessions.some(s=>s.day_type==='pull');
       cls += hasPush && hasPull ? " both" : hasPush ? " push" : " pull";
+      // Update 1.8.5: a session that was never explicitly "finished" now
+      // still shows up (see get_history() note above) -- mark it visually
+      // distinct so it doesn't look identical to a completed workout.
+      if(daySessions.every(s=>!s.finished)) cls += " unfinished";
     }
     if(streakDates.has(iso)) cls += " streak";
     if(iso === todayIso) cls += " today";
     const flame = (daySessions && streakDates.has(iso)) ? `<span class="flame">${ic('flame')}</span>` : "";
-    cells += `<div class="${cls}" data-date="${daySessions?iso:''}">${flame}<span class="dn">${d}</span></div>`;
+    // Update 1.8.5: every real day is now clickable, not just days that
+    // already have a session -- tapping an empty day offers to add a
+    // brand-new retroactive training (see xtAddNewTraining()).
+    cells += `<div class="${cls}" data-date="${iso}">${flame}<span class="dn">${d}</span></div>`;
   }
 
   content.innerHTML = `
@@ -1855,7 +1971,12 @@ function renderXtCalendarView(){
   });
   content.querySelectorAll(".xt-cal-cell[data-date]").forEach(cell=>{
     if(!cell.dataset.date) return;
-    cell.addEventListener("click", ()=> xtShowDayDetail(cell.dataset.date, byDate[cell.dataset.date]));
+    cell.addEventListener("click", ()=>{
+      const iso = cell.dataset.date;
+      const daySessions = byDate[iso];
+      if(daySessions && daySessions.length) xtShowDayDetail(iso, daySessions);
+      else xtAddNewTraining(iso);
+    });
   });
 }
 function xtShowDayDetail(date, sessions){
@@ -1863,7 +1984,9 @@ function xtShowDayDetail(date, sessions){
   if(!el || !sessions || !sessions.length) return;
   const d = new Date(date+"T00:00:00");
   const label = d.toLocaleDateString("de-DE", {weekday:"long", day:"numeric", month:"long"});
+  const byId = {};
   el.innerHTML = sessions.map(s=>{
+    byId[s.id] = s;
     const bySet = {};
     (s.sets||[]).filter(x=>x.logged).forEach(x=> (bySet[x.exercise_name] = bySet[x.exercise_name] || []).push(x));
     const exList = Object.entries(bySet).map(([name, sets])=>{
@@ -1876,11 +1999,23 @@ function xtShowDayDetail(date, sessions){
       }).join(", ");
       return `<div class="xt-detail-ex"><span class="xn">${xtDisplayName(name)}</span><span class="xv">${vals}</span></div>`;
     }).join("");
+    // Update 1.8.5: every session card gets a "Bearbeiten" button so an
+    // already-logged (or never-finished) training can be corrected, plus an
+    // "unfertig" badge when it was never explicitly finished.
+    const unfinishedBadge = s.finished ? "" : '<span class="xt-unfinished-badge">unfertig</span>';
     return `<div class="xt-detail-card ${s.day_type}">
-      <div class="xt-detail-head"><span class="day-badge">${s.day_type.toUpperCase()}</span><span>${label}</span></div>
+      <div class="xt-detail-head"><span class="day-badge">${s.day_type.toUpperCase()}</span><span>${label}</span>${unfinishedBadge}
+        <button class="btn ghost small xt-edit-btn" data-session-id="${s.id}">Bearbeiten</button>
+      </div>
       ${exList || '<div class="xt-empty-note" style="padding:10px 0;">Keine Sätze geloggt.</div>'}
     </div>`;
-  }).join("");
+  }).join("")
+  + `<button class="btn secondary small" id="xt-add-another-btn" style="margin-top:10px;">+ Weiteres Training an diesem Tag</button>`;
+  el.querySelectorAll(".xt-edit-btn").forEach(btn=>{
+    btn.addEventListener("click", ()=> enterEditSession(byId[btn.dataset.sessionId]));
+  });
+  const addBtn = $("xt-add-another-btn");
+  if(addBtn) addBtn.addEventListener("click", ()=> xtAddNewTraining(date));
   el.scrollIntoView({behavior:"smooth", block:"nearest"});
 }
 

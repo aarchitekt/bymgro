@@ -848,9 +848,18 @@ def get_session(user_id: str, session_id: int) -> dict | None:
 
 
 def get_history(user_id: str, limit: int = 60) -> list[dict]:
+    # Update 1.8.5: no longer filters to finished=1 only. A session that was
+    # started but never explicitly "finished" (e.g. the user closed the app
+    # mid-workout) used to be completely invisible in Kalender/Tabelle even
+    # though real sets were logged against it -- this is what made a real
+    # workout ("mein training von gestern wird iwi nicht angezeigt") vanish.
+    # Every other consumer of workout_sessions that cares about "finished"
+    # (gamification, streaks, progress charts) queries finished=1 directly
+    # and does NOT go through get_history(), so relaxing this filter only
+    # affects what's shown in the history/table views, not XP or streaks.
     with get_conn() as conn:
         sessions = conn.execute(
-            "SELECT * FROM workout_sessions WHERE user_id=? AND finished=1 ORDER BY date DESC, id DESC LIMIT ?",
+            "SELECT * FROM workout_sessions WHERE user_id=? ORDER BY date DESC, id DESC LIMIT ?",
             (user_id, limit),
         ).fetchall()
         result = []
