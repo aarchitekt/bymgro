@@ -139,6 +139,32 @@
   .xt-row-pull .xt-name-col { background: color-mix(in srgb, var(--good) 15%, var(--bg)); }
   .xt-split-row td { background: var(--ink); color: var(--on-ink); font-weight: 800; font-size: 10px; letter-spacing: .1em; padding: 6px; position: sticky; left: 0; }
   .xt-cell.filled { font-weight: 700; }
+  /* ---------- Update 1.9: direct inline cell editing + combined push/pull
+     table with a SPLIT divider row, matching the user's own Excel sheet
+     layout ("Lege die Tabelle GENAU wie die Excel an"). ---------- */
+  .xt-toolbar { display:flex; justify-content:flex-end; margin-bottom: 8px; }
+  .xt-cell[data-editable] { cursor: pointer; position: relative; }
+  .xt-cell[data-editable]:active { background: color-mix(in srgb, var(--accent) 18%, transparent); }
+  /* small corner triangle marks an empty, tappable cell -- "auf ein
+     Dreieck klicken" entry point into inline editing. */
+  .xt-cell[data-editable]:not(.filled)::after {
+    content: ""; position: absolute; top: 0; right: 0;
+    border-width: 0 6px 6px 0; border-style: solid;
+    border-color: transparent color-mix(in srgb, var(--accent) 55%, var(--line)) transparent transparent;
+  }
+  .xt-cell.editing { padding: 2px !important; }
+  .xt-inline-input {
+    width: 100%; box-sizing: border-box; border: 1.5px solid var(--accent); border-radius: 4px;
+    padding: 3px 1px; font-size: 11px; text-align: center; font-family: inherit;
+    background: var(--bg); color: var(--ink);
+  }
+  .xt-na {
+    background: repeating-linear-gradient(45deg, transparent, transparent 4px,
+      color-mix(in srgb, var(--muted) 10%, transparent) 4px, color-mix(in srgb, var(--muted) 10%, transparent) 8px);
+  }
+  .xt-split-row td { background: var(--ink); color: var(--on-ink); font-weight: 800; font-size: 10px; letter-spacing: .2em; text-align: center; padding: 7px; position: sticky; left: 0; }
+  .xt-date-head.xt-dt-push { border-bottom: 2px solid var(--accent); }
+  .xt-date-head.xt-dt-pull { border-bottom: 2px solid var(--good); }
   .xt-empty-note { padding: 50px 10px; text-align: center; color: var(--muted); font-size: 13px; }
   .xt-legend { display:flex; gap:16px; justify-content:center; margin-top:12px; font-size:11px; color:var(--muted); flex-wrap:wrap; }
   .xt-legend .dot { width:8px;height:8px;border-radius:2px; display:inline-block; margin-right:5px; vertical-align:middle; }
@@ -731,7 +757,7 @@
 </div>
 
 <script>
-const APP_VERSION = "1.8.5";
+const APP_VERSION = "1.9";
 document.getElementById("app-version-line").textContent = "bymgro v" + APP_VERSION;
 
 /* ================= ICONS (monochrome, currentColor) ================= */
@@ -1402,9 +1428,22 @@ function makeWheel(canvasId, opts){
     return { x: t.clientX - rect.left };
   }
 
+  // Update 1.9: pointer capture fix -- "das Rad zum Drehen funktioniert am
+  // Computer beschissen". Root cause: pointermove was only ever listened
+  // for on the tiny 240x40 canvas itself, so a mouse drag (unlike a finger,
+  // which the browser keeps funneling touchmove events to its original
+  // target for even once it wanders off that element) lost tracking the
+  // instant the cursor left those 40 vertical pixels -- easy to do at any
+  // real mouse speed. canvas.setPointerCapture() makes the browser keep
+  // routing pointermove/pointerup to this canvas until release, regardless
+  // of where the cursor actually is on screen -- the standard fix for
+  // exactly this class of drag-widget bug.
   function onDown(e){
     dragging = true;
     lastX = pointFromEvent(e).x;
+    if(e.pointerId !== undefined && canvas.setPointerCapture){
+      try{ canvas.setPointerCapture(e.pointerId); }catch(err){}
+    }
     e.preventDefault();
   }
   function onMove(e){
@@ -1417,10 +1456,17 @@ function makeWheel(canvasId, opts){
     setValue(value - (dx / PX_PER_STEP) * opts.step);
     e.preventDefault();
   }
-  function onUp(){ dragging = false; }
+  function onUp(e){
+    dragging = false;
+    if(e && e.pointerId !== undefined && canvas.releasePointerCapture){
+      try{ canvas.releasePointerCapture(e.pointerId); }catch(err){}
+    }
+  }
 
   canvas.addEventListener("pointerdown", onDown);
   canvas.addEventListener("pointermove", onMove);
+  canvas.addEventListener("pointerup", onUp);
+  canvas.addEventListener("pointercancel", onUp);
   window.addEventListener("pointerup", onUp);
   canvas.addEventListener("touchstart", onDown, {passive:false});
   canvas.addEventListener("touchmove", onMove, {passive:false});
@@ -1770,82 +1816,107 @@ function renderXtHost(){
   else renderXtCalendarView();
 }
 
-/* ---- Tabelle (matrix) view, one day-type at a time ---- */
+/* ---- Tabelle (matrix) view -- Update 1.9: rebuilt to mirror the user's
+   own Excel sheet exactly ("Lege die Tabelle GENAU wie die Excel an"):
+   push and pull exercises stacked in ONE continuous table with a black
+   "SPLIT" divider row between them (like the sheet's own SPLIT row),
+   date columns running left-to-right across BOTH day types instead of
+   switching between two separate Push/Pull tables. A column only has
+   real data in the rows matching its own day_type -- the other block's
+   rows just render blank/hatched for that date, exactly like the empty
+   cells in the source spreadsheet. Also Update 1.9: every data cell is
+   now directly editable in place (tap it, a number keyboard comes up
+   right there, type the value, done) instead of only the date header
+   dropping into the full wheel screen -- per explicit feedback ("man
+   sollte die Tabelle direkt bearbeiten können"). A small corner triangle
+   marks empty-but-editable cells as tappable. */
 function renderXtTableView(){
   const content = $("xt-content");
   if(!content || !xtLastData) return;
   const data = xtLastData;
-  const typeSwitchHtml = `
-    <div class="seg-switch xt-switch-row" id="xt-type-switch">
-      <button class="seg-btn ${xtDayType==='push'?'on xt-push-on':''}" data-type="push">Push</button>
-      <button class="seg-btn ${xtDayType==='pull'?'on xt-pull-on':''}" data-type="pull">Pull</button>
-    </div>`;
 
   // Update 1.8.5: include never-"finished" sessions too (see get_history()
   // note) so a training that's still hanging around unfinished shows up
   // here instead of silently vanishing.
-  const sessions = (data.hist || []).filter(s => s.day_type === xtDayType).slice()
+  const sessions = (data.hist || []).slice()
     .sort((a,b)=> a.date.localeCompare(b.date) || a.id - b.id);
 
+  const addDayBtnHtml = `<div class="xt-toolbar"><button class="btn secondary small" id="xt-add-day-btn">+ Trainingstag</button></div>`;
+
   if(!sessions.length){
-    content.innerHTML = typeSwitchHtml
-      + `<div class="xt-empty-note">Noch keine ${xtDayType==='push'?'Push':'Pull'}-Workouts geloggt.</div>`;
-    wireXtTypeSwitch();
+    content.innerHTML = addDayBtnHtml
+      + `<div class="xt-empty-note">Noch keine Workouts geloggt.</div>`;
+    wireXtAddDayBtn();
     return;
   }
 
-  const cols = sessions.map(s => ({ id: s.id, date: s.date, sets: s.sets || [], finished: s.finished }));
-  const rows = (data.plan[xtDayType] || []).map(ex => ({
-    name: ex.name, muscle: ex.muscle, kind: ex.kind, target: ex.target_sets || 3,
+  const cols = sessions.map(s => ({ id: s.id, date: s.date, day_type: s.day_type, sets: s.sets || [], finished: s.finished }));
+  const pushRows = (data.plan.push || []).filter(ex => ex.kind !== "warmup").map(ex => ({
+    name: ex.name, muscle: ex.muscle, kind: ex.kind, target: ex.target_sets || 3, day_type: "push",
   }));
-  const maxSets = Math.max(3, ...rows.map(r => r.target || 3));
+  const pullRows = (data.plan.pull || []).map(ex => ({
+    name: ex.name, muscle: ex.muscle, kind: ex.kind, target: ex.target_sets || 3, day_type: "pull",
+  }));
+  const maxSets = Math.max(3, ...pushRows.map(r => r.target || 3), ...pullRows.map(r => r.target || 3));
   const SET_LABELS = ["I","II","III","IV","V"];
 
   function setsFor(col, name){
     return (col.sets || []).filter(s => s.exercise_name === name && s.logged)
       .sort((a,b)=> a.set_index - b.set_index);
   }
-  function cellsHtml(r, valueOf){
+  // field: "weight" | "reps" | "time" -- which value this row of cells edits.
+  function cellsHtml(r, field){
     return cols.map(c=>{
+      const applicable = c.day_type === r.day_type;
+      if(!applicable){
+        return `<td class="xt-cell xt-na" colspan="1"></td>`.repeat(maxSets);
+      }
       const sets = setsFor(c, r.name);
       let out = "";
       for(let i=0;i<maxSets;i++){
-        const v = valueOf(sets[i]);
-        out += `<td class="xt-cell${v!==""?" filled":""}">${v}</td>`;
+        const s = sets[i];
+        let v = "";
+        if(s){
+          if(field === "weight") v = s.weight != null ? fmt1(s.weight) : "";
+          else if(field === "time") v = s.value_text || (s.reps != null ? fmt1(s.reps) : "");
+          else v = s.reps != null ? fmt1(s.reps) : "";
+        }
+        out += `<td class="xt-cell${v!==""?" filled":""}" data-editable="1" data-session-id="${c.id}" `
+          + `data-exercise="${r.name.replace(/"/g,'&quot;')}" data-set-index="${i}" data-field="${field}">${v}</td>`;
       }
       return out;
     }).join("");
   }
   function primaryRow(r){
     const label = r.kind === "weight" ? "Gewicht" : r.kind === "time" ? "Zeit" : "Wiederhlng";
+    const field = r.kind === "weight" ? "weight" : r.kind === "time" ? "time" : "reps";
     const nameCell = `<td class="xt-name-col"><div class="xn">${xtDisplayName(r.name)}</div>`
       + `<div class="xm">${r.muscle||""}</div><div class="xl">${label}</div></td>`;
-    const valueOf = (s)=>{
-      if(!s) return "";
-      if(r.kind === "weight") return s.weight!=null ? fmt1(s.weight) : "";
-      if(r.kind === "time") return s.value_text || (s.reps!=null ? fmt1(s.reps) : "");
-      return s.reps!=null ? fmt1(s.reps) : "";
-    };
-    return `<tr class="xt-row-${xtDayType}">${nameCell}${cellsHtml(r, valueOf)}</tr>`;
+    return `<tr class="xt-row-${r.day_type}">${nameCell}${cellsHtml(r, field)}</tr>`;
   }
   function repsRow(r){
     const nameCell = `<td class="xt-name-col"><div class="xl">Wiederhlng</div></td>`;
-    const valueOf = (s)=> (s && s.reps!=null) ? fmt1(s.reps) : "";
-    return `<tr class="xt-row-${xtDayType}">${nameCell}${cellsHtml(r, valueOf)}</tr>`;
+    return `<tr class="xt-row-${r.day_type}">${nameCell}${cellsHtml(r, "reps")}</tr>`;
   }
 
-  // Update 1.8.5: each date header is now a "Bearbeiten" entry point too --
-  // tapping it drops straight into the edit screen for that column's
-  // session, satisfying "man kann tabelle ... nicht bearbeiten".
-  const dateHead = cols.map(c => `<th class="xt-date-head xt-date-edit${c.finished?"":" unfinished"}" colspan="${maxSets}" data-session-id="${c.id}">${xtShortDate(c.date)}</th>`).join("");
+  // Update 1.8.5: each date header is still a "Bearbeiten" entry point too --
+  // tapping it drops straight into the full wheel/exercise edit screen for
+  // that column's session (useful for logging a whole session at once);
+  // tapping an individual cell now edits just that value inline instead.
+  const dateHead = cols.map(c => `<th class="xt-date-head xt-date-edit${c.finished?"":" unfinished"} xt-dt-${c.day_type}" colspan="${maxSets}" data-session-id="${c.id}">${xtShortDate(c.date)}</th>`).join("");
   const setHead = cols.map(()=> SET_LABELS.slice(0,maxSets).map(l=>`<th class="xt-set-head">${l}</th>`).join("")).join("");
   const bodyRows = [];
-  rows.forEach(r=>{
+  pushRows.forEach(r=>{
+    bodyRows.push(primaryRow(r));
+    if(r.kind === "weight") bodyRows.push(repsRow(r));
+  });
+  bodyRows.push(`<tr class="xt-split-row"><td colspan="${1 + cols.length*maxSets}">SPLIT</td></tr>`);
+  pullRows.forEach(r=>{
     bodyRows.push(primaryRow(r));
     if(r.kind === "weight") bodyRows.push(repsRow(r));
   });
 
-  content.innerHTML = typeSwitchHtml + `
+  content.innerHTML = addDayBtnHtml + `
     <div class="xt-wrap">
       <table class="xt-table">
         <thead>
@@ -1855,21 +1926,112 @@ function renderXtTableView(){
         <tbody>${bodyRows.join("")}</tbody>
       </table>
     </div>
-    <div class="xt-empty-note" style="margin-top:6px;">Datum antippen zum Bearbeiten</div>
+    <div class="xt-empty-note" style="margin-top:6px;">Zelle antippen zum Bearbeiten &middot; Datum antippen für die volle Ansicht</div>
   `;
   const sessById = {};
-  cols.forEach(c => sessById[c.id] = { id: c.id, day_type: xtDayType, date: c.date, sets: c.sets });
+  cols.forEach(c => sessById[c.id] = { id: c.id, day_type: c.day_type, date: c.date, sets: c.sets });
   content.querySelectorAll(".xt-date-edit").forEach(th=>{
     th.addEventListener("click", ()=> enterEditSession(sessById[th.dataset.sessionId]));
   });
-  wireXtTypeSwitch();
-}
-function wireXtTypeSwitch(){
-  const el = $("xt-type-switch");
-  if(!el) return;
-  el.querySelectorAll(".seg-btn").forEach(b=>{
-    b.addEventListener("click", ()=>{ xtDayType = b.dataset.type; renderXtTableView(); });
+  content.querySelectorAll("td.xt-cell[data-editable]").forEach(td=>{
+    td.addEventListener("click", ()=> xtEditCellInline(td, sessById));
   });
+  wireXtAddDayBtn();
+}
+
+/* Update 1.9: tap-to-edit for a single Tabelle cell -- swaps the cell's
+   text for a real <input type=number>, which is what makes the phone's
+   own number keyboard pop up at the bottom of the screen (no custom
+   keyboard UI needed, the OS already does this for any focused numeric
+   input). Saves immediately on blur/Enter via the same /set endpoint
+   toggleSet() already uses, Escape cancels without saving. Since
+   log_set() overwrites the whole session_sets row (weight+reps+value_text
+   together, not a partial patch), editing just one field always resends
+   the sibling field's current value alongside it so it isn't wiped out. */
+function xtEditCellInline(td, sessById){
+  if(td.classList.contains("editing")) return;
+  const sessionId = td.dataset.sessionId;
+  const exercise = td.dataset.exercise;
+  const setIndex = parseInt(td.dataset.setIndex, 10);
+  const field = td.dataset.field;
+  const sess = sessById[sessionId];
+  const existing = ((sess && sess.sets) || []).find(s => s.exercise_name === exercise && s.set_index === setIndex && s.logged);
+  const currentRaw = td.textContent.trim();
+
+  td.classList.add("editing");
+  const input = document.createElement("input");
+  input.type = field === "time" ? "text" : "number";
+  input.inputMode = "decimal";
+  input.className = "xt-inline-input";
+  input.value = currentRaw;
+  td.textContent = "";
+  td.appendChild(input);
+  input.focus();
+  input.select();
+
+  let done = false;
+  function cancel(){
+    if(done) return; done = true;
+    td.textContent = currentRaw;
+    td.classList.remove("editing");
+  }
+  function save(){
+    if(done) return; done = true;
+    const raw = input.value.trim();
+    const payload = {
+      exercise_name: exercise, set_index: setIndex,
+      weight: existing && existing.weight != null ? existing.weight : null,
+      reps: existing && existing.reps != null ? existing.reps : null,
+      value_text: existing && existing.value_text != null ? existing.value_text : null,
+    };
+    if(raw === ""){
+      if(field === "weight") payload.weight = null;
+      else if(field === "time"){ payload.reps = null; payload.value_text = null; }
+      else payload.reps = null;
+    } else {
+      const num = parseFloat(raw.replace(",", "."));
+      if(isNaN(num)){ done = false; cancel(); return; }
+      if(field === "weight") payload.weight = num;
+      else if(field === "time"){ payload.reps = num; payload.value_text = raw; }
+      else payload.reps = num;
+    }
+    payload.logged = payload.weight != null || payload.reps != null || payload.value_text != null;
+    api(`/api/workout/${sessionId}/set`, {method:"POST", body: JSON.stringify(payload)}).then(()=>{
+      if(sess){
+        sess.sets = (sess.sets||[]).filter(s => !(s.exercise_name===exercise && s.set_index===setIndex));
+        if(payload.logged) sess.sets.push(Object.assign({exercise_name:exercise, set_index:setIndex, logged:true}, payload));
+      }
+      const displayVal = field === "weight" ? (payload.weight!=null?fmt1(payload.weight):"")
+        : field === "time" ? (payload.value_text || (payload.reps!=null?fmt1(payload.reps):""))
+        : (payload.reps!=null?fmt1(payload.reps):"");
+      td.textContent = displayVal;
+      td.classList.toggle("filled", displayVal !== "");
+      td.classList.remove("editing");
+    }).catch(()=>{ toast("Konnte nicht speichern"); done = false; cancel(); });
+  }
+  input.addEventListener("keydown", (e)=>{
+    if(e.key === "Enter"){ e.preventDefault(); input.blur(); }
+    else if(e.key === "Escape"){ e.preventDefault(); cancel(); }
+  });
+  input.addEventListener("blur", save);
+}
+
+/* Update 1.9: "+ Trainingstag" inside the Tabelle itself -- previously the
+   only way to start a brand-new logged day was to open Kalender and tap an
+   empty day; per feedback ("man sollte auch einen Trainingstag hinzufügen
+   können genau wie bei der Excel Liste") the Tabelle view now offers the
+   same entry point directly, reusing the existing date+type prompt flow. */
+function xtAddDayFromTable(){
+  const todayIso = new Date().toISOString().slice(0,10);
+  const dateStr = prompt("Datum für den neuen Trainingstag (JJJJ-MM-TT):", todayIso);
+  if(!dateStr) return;
+  const trimmed = dateStr.trim();
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)){ toast("Bitte Datum als JJJJ-MM-TT eingeben"); return; }
+  xtAddNewTraining(trimmed);
+}
+function wireXtAddDayBtn(){
+  const btn = $("xt-add-day-btn");
+  if(btn) btn.addEventListener("click", xtAddDayFromTable);
 }
 
 /* ---- Kalender (month grid) view ---- */

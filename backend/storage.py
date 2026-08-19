@@ -197,6 +197,7 @@ def _migrate(conn: sqlite3.Connection):
     _seed_aamend_account(conn)
     _fix_aamend_history_v2(conn)
     _fix_aamend_history_v3(conn)
+    _fix_aamend_history_v4(conn)
 
 
 def _fix_session_sets_fk(conn: sqlite3.Connection):
@@ -334,6 +335,7 @@ def _seed_aamend_account(conn: sqlite3.Connection):
     ).fetchone()
     if not has_sessions:
         _import_aamend_history(conn)
+        _recompute_last_from_history(conn, AAMEND_USER_ID)
 
 
 def _import_aamend_history(conn: sqlite3.Connection):
@@ -492,6 +494,144 @@ def _fix_aamend_history_v3(conn: sqlite3.Connection):
     _import_aamend_history(conn)
     conn.execute(
         "INSERT INTO seed_meta (key, value) VALUES ('aamend_history_v3', datetime('now'))"
+    )
+
+
+# Update 1.9: the user pointed at a newer export of their Excel tracker
+# ("NO SKINNY FAT PLS2.xlsx") holding many more weeks than the v3 seed ever
+# saw (19 push + 17 pull real sessions total, vs. v3's 13 + 8) -- the v3
+# seed simply predates most of this data. Re-parsed the new file column by
+# column (each 3-column group is one session; a blank/garbled header's date
+# was inferred either from a stray value literally typed into a data cell
+# nearby -- e.g. 2026-07-11 was found sitting in a Pull-Up *weight* cell for
+# what was otherwise an undated column -- or, failing that, from position
+# between the nearest two reliably-dated columns). Three sessions that
+# looked "new" by column position turned out to be exact set-for-set
+# duplicates of already-imported v3 sessions once compared by value
+# (2026-06-13/16/18 push/pull/push) -- the columns holding them had gotten
+# reshuffled in the sheet, not actually new data, so v4 keeps the old dates
+# for those three rather than the position-implied ones. Two v3 sessions
+# also get corrected here: 2026-05-15 push is renamed to 2026-05-16 (a
+# clean re-read of that column's garbled "16.5" header, day.month style,
+# once the same reading was confirmed exactly against two other corrupted
+# headers found nearby) and 2026-07-18 gets *split* -- v3's single
+# day_type="push" row for that date incorrectly held both push and pull
+# exercises together (the sheet really does have a push and a pull session
+# both dated 7/18), so v4 replaces it with two clean same-date sessions.
+_AAMEND_HISTORY_V3_ROWS = [
+    ("2026-04-30", "push"), ("2026-05-02", "pull"), ("2026-05-04", "push"),
+    ("2026-05-06", "pull"), ("2026-05-08", "push"), ("2026-05-10", "pull"),
+    ("2026-05-11", "push"), ("2026-05-13", "pull"), ("2026-05-15", "push"),
+    ("2026-06-02", "push"), ("2026-06-04", "pull"), ("2026-06-09", "push"),
+    ("2026-06-11", "pull"), ("2026-06-13", "push"), ("2026-06-16", "pull"),
+    ("2026-06-18", "push"), ("2026-07-16", "push"), ("2026-07-18", "push"),
+    ("2026-07-30", "push"), ("2026-08-01", "pull"), ("2026-08-03", "push"),
+]
+
+
+def _recompute_last_from_history(conn: sqlite3.Connection, user_id: str):
+    """Backfills plan_exercises.last_weight/last_reps/last_reps_by_set from
+    real session history for every exercise this user has ever logged.
+
+    Why this exists: the Update 1.8 per-set reps memory
+    (last_reps_by_set, keyed by set_index so set 1 of a pyramid keeps a
+    different remembered value than set 3) is only ever *written* by
+    log_set() as sets get logged live in the app. Historical sessions
+    imported wholesale via _import_aamend_history() (both the original
+    import and this v4 top-up) go straight into workout_sessions/
+    session_sets and never touch plan_exercises, so every imported
+    exercise's last_reps_by_set stayed NULL -- meaning the very first set
+    logged live after an import fell back to plan_exercises.last_reps,
+    a single shared value that toggleSet() then immediately overwrites
+    with whatever was just typed for set 1, so set 2's "default" ended up
+    echoing set 1 instead of showing a real historical set-2 number (the
+    literal bug report: "12 wdh im ersten Satz -> Rad zeigt fürs zweite
+    Satz auch 12 statt der echten 10"). Fix: after importing/topping-up
+    history, look at each exercise's most recently *dated* session that
+    actually logged it and copy that session's per-set reps (and its
+    heaviest set's weight) into plan_exercises -- exactly the values the
+    live per-set-log code would have produced if it had been running the
+    whole time. Safe to call anytime (idempotent, always reflects
+    whatever is in workout_sessions/session_sets right now) so it is also
+    called after every _import_aamend_history() top-up in the future, not
+    just this once.
+    """
+    exercises = conn.execute(
+        "SELECT DISTINCT name FROM plan_exercises WHERE user_id=?", (user_id,)
+    ).fetchall()
+    for row in exercises:
+        name = row["name"]
+        latest = conn.execute(
+            """SELECT s.id, s.date FROM workout_sessions s
+               JOIN session_sets ss ON ss.session_id = s.id
+               WHERE s.user_id=? AND ss.exercise_name=? AND ss.logged=1
+               ORDER BY s.date DESC, s.id DESC LIMIT 1""",
+            (user_id, name),
+        ).fetchone()
+        if not latest:
+            continue
+        set_rows = conn.execute(
+            """SELECT set_index, weight, reps FROM session_sets
+               WHERE session_id=? AND exercise_name=? AND logged=1
+               ORDER BY set_index""",
+            (latest["id"], name),
+        ).fetchall()
+        if not set_rows:
+            continue
+        by_set = {str(r["set_index"]): r["reps"] for r in set_rows if r["reps"] is not None}
+        weights = [r["weight"] for r in set_rows if r["weight"] is not None]
+        last_weight = max(weights) if weights else None
+        last_reps = set_rows[-1]["reps"]
+        conn.execute(
+            "UPDATE plan_exercises SET last_weight=COALESCE(?,last_weight), "
+            "last_reps=COALESCE(?,last_reps), last_reps_by_set=? WHERE user_id=? AND name=?",
+            (last_weight, last_reps, json.dumps(by_set), user_id, name),
+        )
+
+
+def _fix_aamend_history_v4(conn: sqlite3.Connection):
+    if not conn.execute("SELECT 1 FROM auth_credentials WHERE username='aamend'").fetchone():
+        return  # _seed_aamend_account() hasn't even run yet (nothing to fix)
+    if conn.execute("SELECT 1 FROM seed_meta WHERE key='aamend_history_v4'").fetchone():
+        return  # already fixed
+
+    def _delete_session(row_id):
+        conn.execute("DELETE FROM session_sets WHERE session_id=?", (row_id,))
+        conn.execute("DELETE FROM workout_sessions WHERE id=?", (row_id,))
+
+    # Pass 1: remove the specific old v3 rows (including the two that need
+    # correcting: 2026-05-15 push and 2026-07-18 push) so they don't sit
+    # alongside their v4 replacements.
+    for date, day_type in _AAMEND_HISTORY_V3_ROWS:
+        for r in conn.execute(
+            "SELECT id FROM workout_sessions WHERE user_id=? AND date=? AND day_type=?",
+            (AAMEND_USER_ID, date, day_type),
+        ).fetchall():
+            _delete_session(r["id"])
+    for d in {d for d, _ in _AAMEND_HISTORY_V3_ROWS}:
+        conn.execute("DELETE FROM bodyweight_log WHERE user_id=? AND date=?", (AAMEND_USER_ID, d))
+
+    # Pass 2: also remove anything already sitting under any date the
+    # *current* seed_aamend_history.json covers, regardless of day_type --
+    # same "survives a from-scratch deploy that already seeded the current
+    # file" safety net as v3 had.
+    if SEED_AAMEND_HISTORY_PATH.exists():
+        try:
+            history = json.loads(SEED_AAMEND_HISTORY_PATH.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            history = []
+        for d in {s["date"] for s in history}:
+            for r in conn.execute(
+                "SELECT id FROM workout_sessions WHERE user_id=? AND date=?",
+                (AAMEND_USER_ID, d),
+            ).fetchall():
+                _delete_session(r["id"])
+            conn.execute("DELETE FROM bodyweight_log WHERE user_id=? AND date=?", (AAMEND_USER_ID, d))
+
+    _import_aamend_history(conn)
+    _recompute_last_from_history(conn, AAMEND_USER_ID)
+    conn.execute(
+        "INSERT INTO seed_meta (key, value) VALUES ('aamend_history_v4', datetime('now'))"
     )
 
 
