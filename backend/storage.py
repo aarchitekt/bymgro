@@ -198,6 +198,14 @@ def _migrate(conn: sqlite3.Connection):
     _fix_aamend_history_v2(conn)
     _fix_aamend_history_v3(conn)
     _fix_aamend_history_v4(conn)
+    # Update 1.9.2: wrapped so a bug in the self-healing check can never
+    # crash app startup again (that's the failure mode that risks silently
+    # freezing the DB in a half-imported state) -- worst case this prints
+    # an error and the app still comes up with whatever history it had.
+    try:
+        _fix_aamend_history_v5(conn)
+    except Exception as e:  # noqa: BLE001
+        print(f"[bymgro] _fix_aamend_history_v5 failed (non-fatal): {e!r}")
 
 
 def _fix_session_sets_fk(conn: sqlite3.Connection):
@@ -633,6 +641,87 @@ def _fix_aamend_history_v4(conn: sqlite3.Connection):
     conn.execute(
         "INSERT INTO seed_meta (key, value) VALUES ('aamend_history_v4', datetime('now'))"
     )
+
+
+# Update 1.9.2: v4 (above) only ever runs ONCE, gated on a seed_meta flag --
+# which turned out to be exactly why the production DB was left with the
+# Excel history only half-imported (14ish real sessions instead of the
+# correct 19 push/17 pull = 36) and never healed itself: something on the
+# very first (and only) run of v4 interrupted the reimport partway through
+# (most likely two Uvicorn workers/restarts racing on the same sqlite file
+# during that one deploy), the flag still got written at the end of that
+# request cycle, and every restart since then saw the flag and skipped --
+# permanently pinning the broken partial state. Per explicit instruction
+# this must never happen again, so this check no longer trusts a one-shot
+# flag at all: it runs on *every* startup, actually counts what's in the
+# DB against what seed_aamend_history.json says should be there, and only
+# does the (cheap, idempotent) wipe-and-reimport when something's actually
+# missing. When everything already matches this is just ~40 cheap lookups
+# and returns instantly -- safe to leave running forever as a standing
+# guarantee rather than a one-time fix.
+def _fix_aamend_history_v5(conn: sqlite3.Connection):
+    if not conn.execute("SELECT 1 FROM auth_credentials WHERE username='aamend'").fetchone():
+        return
+    if not SEED_AAMEND_HISTORY_PATH.exists():
+        return
+    try:
+        history = json.loads(SEED_AAMEND_HISTORY_PATH.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return
+    if not history:
+        return
+
+    expected = {(s["date"], s["day_type"]) for s in history}
+
+    def _delete_session(row_id):
+        conn.execute("DELETE FROM session_sets WHERE session_id=?", (row_id,))
+        conn.execute("DELETE FROM workout_sessions WHERE id=?", (row_id,))
+
+    rows = conn.execute(
+        "SELECT id, date, day_type FROM workout_sessions WHERE user_id=?",
+        (AAMEND_USER_ID,),
+    ).fetchall()
+    by_key = {}
+    for r in rows:
+        by_key.setdefault((r["date"], r["day_type"]), []).append(r["id"])
+
+    missing = expected - set(by_key.keys())
+    incomplete = bool(missing)
+    if not incomplete:
+        # Every expected (date, day_type) exists -- but a partial import
+        # could also have created the session row and then died before
+        # inserting its sets, so check each one actually has at least one
+        # logged set too.
+        for key in expected:
+            ids = by_key.get(key, [])
+            total_sets = sum(
+                conn.execute(
+                    "SELECT COUNT(*) c FROM session_sets WHERE session_id=?", (rid,)
+                ).fetchone()["c"]
+                for rid in ids
+            )
+            if total_sets == 0:
+                incomplete = True
+                break
+
+    if not incomplete:
+        return  # already complete, nothing to heal
+
+    print(f"[bymgro] aamend history incomplete (missing={sorted(missing)}) -- re-importing from {SEED_AAMEND_HISTORY_PATH.name}")
+
+    # Heal: wipe every session on any date the current file covers (any
+    # day_type, same safety net v3/v4 used), then reimport fresh.
+    for d in {s["date"] for s in history}:
+        for r in conn.execute(
+            "SELECT id FROM workout_sessions WHERE user_id=? AND date=?",
+            (AAMEND_USER_ID, d),
+        ).fetchall():
+            _delete_session(r["id"])
+        conn.execute("DELETE FROM bodyweight_log WHERE user_id=? AND date=?", (AAMEND_USER_ID, d))
+
+    _import_aamend_history(conn)
+    _recompute_last_from_history(conn, AAMEND_USER_ID)
+    print("[bymgro] aamend history re-import complete")
 
 
 def gen_code() -> str:

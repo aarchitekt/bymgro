@@ -11,6 +11,14 @@
     --bg: #ffffff; --ink: #111111; --on-ink: #ffffff; --muted: #8a8a8a;
     --line: rgba(0,0,0,0.10); --panel: rgba(0,0,0,0.04); --accent: #eb6834;
     --good: #1baf7a;
+    /* Update 1.9.2: fixed general Push/Pull color code across the whole
+       app ("das soll der allgemeine Farbcode sein für die beiden") --
+       red/dark-red for Push, blue/dark-blue for Pull. Deliberately NOT
+       theme-dependent (same in light/dark) so the code stays consistent
+       everywhere it's used: Tabelle borders + row banding, Kalender
+       cells, session detail cards, legends. */
+    --push-c: #d1362f; --push-c-dark: #7c1f1a;
+    --pull-c: #2f6fd1; --pull-c-dark: #17356f;
     color-scheme: light;
   }
   html[data-theme="dark"] {
@@ -157,8 +165,8 @@
       color-mix(in srgb, var(--muted) 10%, transparent) 4px, color-mix(in srgb, var(--muted) 10%, transparent) 8px);
   }
   .xt-split-row td { background: var(--ink); color: var(--on-ink); font-weight: 800; font-size: 10px; letter-spacing: .2em; text-align: center; padding: 7px; position: sticky; left: 0; }
-  .xt-date-head.xt-dt-push { border-bottom: 2px solid var(--accent); }
-  .xt-date-head.xt-dt-pull { border-bottom: 2px solid var(--good); }
+  .xt-date-head.xt-dt-push { border-bottom: 2px solid var(--push-c); }
+  .xt-date-head.xt-dt-pull { border-bottom: 2px solid var(--pull-c); }
 
   /* ---------- Update 1.9.1: second sticky "Sätze"-label column (Gewicht/
      Wiederhlng/Zeit), a real rowspan=2 name+muscle cell, thicker borders
@@ -174,10 +182,20 @@
   }
   .xt-corner { min-width: 114px; }
   .xt-table .xt-group-start { border-left: 2.5px solid var(--ink); }
-  .xt-ex-a.xt-name-col, .xt-ex-a.xt-label-col { background: color-mix(in srgb, #2e7d32 26%, var(--bg)); }
-  .xt-ex-b.xt-name-col, .xt-ex-b.xt-label-col { background: color-mix(in srgb, #7cb342 22%, var(--bg)); }
-  tr.xt-ex-a td.xt-cell { background: color-mix(in srgb, #2e7d32 10%, var(--bg)); }
-  tr.xt-ex-b td.xt-cell { background: color-mix(in srgb, #7cb342 9%, var(--bg)); }
+  /* Update 1.9.2: banding recolored to the general Push/Pull code (red for
+     Push, blue for Pull), alternating dark/light per exercise like before
+     -- "dunkelrot und rot, pull in dunkelblau und blau, das soll der
+     allgemeine Farbcode sein". Sticky name/label cells carry both the
+     xt-dt-push/pull AND xt-ex-a/b classes; the data cells pick up the same
+     tone via the row's xt-row-push/pull + xt-ex-a/b classes. */
+  .xt-dt-push.xt-ex-a.xt-name-col, .xt-dt-push.xt-ex-a.xt-label-col { background: color-mix(in srgb, var(--push-c-dark) 30%, var(--bg)); }
+  .xt-dt-push.xt-ex-b.xt-name-col, .xt-dt-push.xt-ex-b.xt-label-col { background: color-mix(in srgb, var(--push-c) 24%, var(--bg)); }
+  .xt-dt-pull.xt-ex-a.xt-name-col, .xt-dt-pull.xt-ex-a.xt-label-col { background: color-mix(in srgb, var(--pull-c-dark) 30%, var(--bg)); }
+  .xt-dt-pull.xt-ex-b.xt-name-col, .xt-dt-pull.xt-ex-b.xt-label-col { background: color-mix(in srgb, var(--pull-c) 24%, var(--bg)); }
+  tr.xt-row-push.xt-ex-a td.xt-cell { background: color-mix(in srgb, var(--push-c-dark) 13%, var(--bg)); }
+  tr.xt-row-push.xt-ex-b td.xt-cell { background: color-mix(in srgb, var(--push-c) 10%, var(--bg)); }
+  tr.xt-row-pull.xt-ex-a td.xt-cell { background: color-mix(in srgb, var(--pull-c-dark) 13%, var(--bg)); }
+  tr.xt-row-pull.xt-ex-b td.xt-cell { background: color-mix(in srgb, var(--pull-c) 10%, var(--bg)); }
   tr.xt-ex-a td.xt-cell.xt-na, tr.xt-ex-b td.xt-cell.xt-na {
     background-image: repeating-linear-gradient(45deg, transparent, transparent 4px,
       color-mix(in srgb, var(--muted) 12%, transparent) 4px, color-mix(in srgb, var(--muted) 12%, transparent) 8px);
@@ -188,8 +206,8 @@
 
   /* ---------- Update 1.7: Tabelle view-mode + Push/Pull switches, month calendar ---------- */
   .xt-switch-row { margin-bottom: 12px; }
-  .seg-btn.on.xt-push-on { background: var(--accent); color: #fff; }
-  .seg-btn.on.xt-pull-on { background: var(--good); color: #fff; }
+  .seg-btn.on.xt-push-on { background: var(--push-c); color: #fff; }
+  .seg-btn.on.xt-pull-on { background: var(--pull-c); color: #fff; }
   .xt-cal-nav { display:flex; align-items:center; justify-content:space-between; margin: 4px 0 12px; }
   .xt-cal-month { font-size:14px; font-weight:700; }
   .xt-cal-wd-row { display:grid; grid-template-columns: repeat(7,1fr); text-align:center; font-size:10px; color:var(--muted); margin-bottom:6px; letter-spacing:.03em; }
@@ -197,9 +215,9 @@
   .xt-cal-cell { position:relative; aspect-ratio:1; border-radius:10px; display:flex; align-items:center; justify-content:center;
     font-size:12px; background:var(--panel); border:1px solid var(--line); color:var(--muted); cursor:pointer; }
   .xt-cal-cell.empty { background:none; border:none; cursor:default; }
-  .xt-cal-cell.push { background:color-mix(in srgb, var(--accent) 28%, var(--bg)); border-color:var(--accent); color:var(--ink); font-weight:700; cursor:pointer; }
-  .xt-cal-cell.pull { background:color-mix(in srgb, var(--good) 28%, var(--bg)); border-color:var(--good); color:var(--ink); font-weight:700; cursor:pointer; }
-  .xt-cal-cell.both { background:linear-gradient(135deg, color-mix(in srgb, var(--accent) 32%, var(--bg)) 50%, color-mix(in srgb, var(--good) 32%, var(--bg)) 50%); border-color:var(--ink); color:var(--ink); font-weight:700; cursor:pointer; }
+  .xt-cal-cell.push { background:color-mix(in srgb, var(--push-c) 28%, var(--bg)); border-color:var(--push-c); color:var(--ink); font-weight:700; cursor:pointer; }
+  .xt-cal-cell.pull { background:color-mix(in srgb, var(--pull-c) 28%, var(--bg)); border-color:var(--pull-c); color:var(--ink); font-weight:700; cursor:pointer; }
+  .xt-cal-cell.both { background:linear-gradient(135deg, color-mix(in srgb, var(--push-c) 32%, var(--bg)) 50%, color-mix(in srgb, var(--pull-c) 32%, var(--bg)) 50%); border-color:var(--ink); color:var(--ink); font-weight:700; cursor:pointer; }
   /* Update 1.8.5: a session that was started but never explicitly finished
      -- previously invisible entirely, now shown with a dashed border. */
   .xt-cal-cell.unfinished { border-style:dashed; }
@@ -210,8 +228,8 @@
   .xt-cal-cell .flame svg { width:100%; height:100%; }
   .xt-detail-card { margin-top:16px; border:1px solid var(--line); border-radius:14px; padding:12px 14px; }
   .xt-detail-card + .xt-detail-card { margin-top:10px; }
-  .xt-detail-card.push { border-color: var(--accent); }
-  .xt-detail-card.pull { border-color: var(--good); }
+  .xt-detail-card.push { border-color: var(--push-c); }
+  .xt-detail-card.pull { border-color: var(--pull-c); }
   .xt-detail-head { display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; margin-bottom:8px; }
   .xt-unfinished-badge { font-size:10px; font-weight:700; color:var(--muted); border:1px dashed var(--muted); border-radius:6px; padding:1px 6px; }
   .xt-edit-btn { margin-left:auto; }
@@ -359,6 +377,8 @@
   .bc-lastline-label { fill: var(--accent); font-weight: 700; }
   .bc-maxline { stroke: var(--muted); stroke-width: 1.2; stroke-dasharray: 1.5 3; opacity: .7; }
   .bc-maxline-label { fill: var(--muted); font-weight: 700; }
+  .bc-firstline { stroke: var(--good); stroke-width: 1.2; stroke-dasharray: 1.5 3; opacity: .6; }
+  .bc-firstline-label { fill: var(--good); font-weight: 700; }
   .progress-vdots { display:flex; flex-direction:column; gap: 6px; position:absolute; right: 8px; top: 50%; transform: translateY(-50%); }
   .progress-vdots .vd { width:5px; height:5px; border-radius:50%; background: var(--line); }
   .progress-vdots .vd.now { background: var(--ink); width:6px; height:16px; border-radius: 3px; }
@@ -774,7 +794,7 @@
 </div>
 
 <script>
-const APP_VERSION = "1.9";
+const APP_VERSION = "1.9.2";
 document.getElementById("app-version-line").textContent = "bymgro v" + APP_VERSION;
 
 /* ================= ICONS (monochrome, currentColor) ================= */
@@ -1699,23 +1719,24 @@ function buildBigChart(points, xKey, yKey, unit){
   }).filter(p => p[yKey] !== null && p[yKey] !== undefined);
   if(carried.length === 0) return '<div class="empty-note">Noch keine Daten für diese Übung.</div>';
 
-  // Update 1.8.4: the y-axis top now scales with this exercise's own
-  // highest logged value instead of a flat 0-100 (which squashed light
-  // exercises and could in theory clip a very heavy one). Per feedback,
-  // given as three examples (11kg -> top 25, 25kg -> top 50, 55kg -> top
-  // 100), the top is the smallest rung of a doubling ladder (25, 50, 100,
-  // 200, ...) that's strictly above the highest real value -- keeps every
-  // chart "flacher" (real swings don't stretch to fill the whole height)
-  // while still scaling sensibly whether someone's lifting 11kg or 110kg.
+  // Update 1.9.2: the y-axis is now symmetric around the *current* (last
+  // logged) value instead of scaling off the all-time highest -- per
+  // direct feedback, repeated several times: "wenn man bei Gewicht 22kg
+  // ist, sollte nach oben genauso viel Platz wie nach unten sein, also 22
+  // nach unten und 22 nach oben, macht 44 auf der Y-Achse, damit der Graph
+  // einigermaßen in der Mitte ist." So: bottom is always 0, top is exactly
+  // 2x the last value -- the last point then sits dead center vertically.
   const ys = carried.map(p=>p[yKey]);
   const highestVal = Math.max(...ys);
+  const firstVal = carried[0][yKey];
   const lastVal = carried[carried.length - 1][yKey];
   function niceAxisCeiling(v){
     let rung = 25;
     while(rung <= v) rung *= 2;
     return rung;
   }
-  let minY = Math.min(0, ...ys), maxY = niceAxisCeiling(Math.max(0, highestVal));
+  let minY = 0;
+  let maxY = lastVal > 0 ? lastVal * 2 : niceAxisCeiling(Math.max(0, highestVal));
   if(minY === maxY){ minY -= 1; maxY += 1; }
   const rangeY = maxY - minY;
   const yFor = (v) => padT + (h-padT-padB) - ((v-minY)/rangeY)*(h-padT-padB);
@@ -1752,6 +1773,13 @@ function buildBigChart(points, xKey, yKey, unit){
   let refLines = refLine(lastVal, "bc-lastline", fmt1(lastVal));
   if(Math.abs(highestVal - lastVal) > 0.05){
     refLines += refLine(highestVal, "bc-maxline", fmt1(highestVal));
+  }
+  // Update 1.9.2: "im Graph sollte auch die erste bzw niedrigste
+  // Gewichtszahl stehen" -- a third reference line for the very first
+  // logged value (typically also the lowest, since progress trends up),
+  // skipped when it'd overlap the last/highest line already drawn.
+  if(Math.abs(firstVal - lastVal) > 0.05 && Math.abs(firstVal - highestVal) > 0.05){
+    refLines += refLine(firstVal, "bc-firstline", fmt1(firstVal));
   }
 
   return `<svg class="bigchart" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet">
@@ -1920,18 +1948,24 @@ function renderXtTableView(){
   // layout (Übung | Muskel-in-derselben-Zelle | Sätze-Label).
   function exerciseRows(r, exIndex){
     const exClass = exIndex % 2 === 0 ? "xt-ex-a" : "xt-ex-b";
-    const nameCell = `<td class="xt-name-col ${exClass}" rowspan="${r.kind==='weight'?2:1}">`
+    // Update 1.9.2: banding is now Push=red/dark-red, Pull=blue/dark-blue
+    // (the general app-wide color code), so the sticky name/label cells
+    // need the day_type on them too, not just the alternating a/b shade --
+    // the CSS below combines "xt-dt-push/pull" + "xt-ex-a/b" to pick the
+    // right red or blue tone.
+    const dtClass = `xt-dt-${r.day_type}`;
+    const nameCell = `<td class="xt-name-col ${exClass} ${dtClass}" rowspan="${r.kind==='weight'?2:1}">`
       + `<div class="xn">${xtDisplayName(r.name)}</div><div class="xm">${r.muscle||""}</div></td>`;
     if(r.kind === "weight"){
-      const wLabel = `<td class="xt-label-col ${exClass}">Gewicht</td>`;
-      const rLabel = `<td class="xt-label-col ${exClass}">Wiederhlng</td>`;
+      const wLabel = `<td class="xt-label-col ${exClass} ${dtClass}">Gewicht</td>`;
+      const rLabel = `<td class="xt-label-col ${exClass} ${dtClass}">Wiederhlng</td>`;
       const row1 = `<tr class="xt-row-${r.day_type} ${exClass}">${nameCell}${wLabel}${cellsHtml(r, "weight")}</tr>`;
       const row2 = `<tr class="xt-row-${r.day_type} ${exClass}">${rLabel}${cellsHtml(r, "reps")}</tr>`;
       return row1 + row2;
     }
     const label = r.kind === "time" ? "Zeit" : "Wiederhlng";
     const field = r.kind === "time" ? "time" : "reps";
-    const labelCell = `<td class="xt-label-col ${exClass}">${label}</td>`;
+    const labelCell = `<td class="xt-label-col ${exClass} ${dtClass}">${label}</td>`;
     return `<tr class="xt-row-${r.day_type} ${exClass}">${nameCell}${labelCell}${cellsHtml(r, field)}</tr>`;
   }
 
@@ -2152,9 +2186,9 @@ function renderXtCalendarView(){
     <div class="xt-cal-wd-row">${WD.map(w=>`<div>${w}</div>`).join("")}</div>
     <div class="xt-cal-grid">${cells}</div>
     <div class="xt-legend">
-      <span><span class="dot" style="background:var(--accent)"></span>Push</span>
-      <span><span class="dot" style="background:var(--good)"></span>Pull</span>
-      <span><span class="dot" style="background:linear-gradient(90deg,var(--accent),var(--good))"></span>Beides</span>
+      <span><span class="dot" style="background:var(--push-c)"></span>Push</span>
+      <span><span class="dot" style="background:var(--pull-c)"></span>Pull</span>
+      <span><span class="dot" style="background:linear-gradient(90deg,var(--push-c),var(--pull-c))"></span>Beides</span>
       <span>🔥 Aktuelle Streak</span>
     </div>
     <div id="xt-day-detail"></div>
