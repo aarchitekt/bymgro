@@ -124,20 +124,14 @@
   .xt-wrap { margin-top: 10px; overflow: auto; -webkit-overflow-scrolling: touch; border: 1px solid var(--line); border-radius: 14px; max-height: 100%; }
   .xt-table { border-collapse: collapse; font-size: 11px; }
   .xt-table th, .xt-table td { border: 1px solid var(--line); padding: 5px 4px; text-align: center; white-space: nowrap; }
-  .xt-name-col { position: sticky; left: 0; background: var(--bg); z-index: 2; text-align: left; padding: 6px 8px; min-width: 92px; max-width: 92px; white-space: normal; }
-  .xt-name-col .xn { font-weight: 700; font-size: 11.5px; line-height: 1.2; }
-  .xt-name-col .xm { color: var(--muted); font-size: 9px; text-transform: uppercase; letter-spacing: .02em; }
-  .xt-name-col .xl { color: var(--muted); font-size: 10px; font-style: italic; }
+  .xt-name-col { position: sticky; left: 0; background: var(--bg); z-index: 2; text-align: left; padding: 6px 6px; min-width: 76px; max-width: 76px; white-space: normal; vertical-align: middle; }
+  .xt-name-col .xn { font-weight: 700; font-size: 11px; line-height: 1.2; }
+  .xt-name-col .xm { color: var(--muted); font-size: 8.5px; text-transform: uppercase; letter-spacing: .02em; margin-top: 2px; }
   .xt-corner { position: sticky; left: 0; top: 0; z-index: 4; background: var(--bg); }
   .xt-date-head { position: sticky; top: 0; z-index: 3; background: var(--bg); font-weight: 700; font-size: 10px; padding: 6px 2px; }
   .xt-date-edit { cursor:pointer; text-decoration: underline dotted; text-underline-offset: 2px; }
   .xt-date-head.unfinished { color: var(--muted); }
   .xt-set-head { position: sticky; top: 25px; z-index: 3; background: var(--bg); color: var(--muted); font-size: 9px; font-weight: 600; padding: 3px 2px; }
-  .xt-row-push { background: color-mix(in srgb, var(--accent) 9%, transparent); }
-  .xt-row-pull { background: color-mix(in srgb, var(--good) 9%, transparent); }
-  .xt-row-push .xt-name-col { background: color-mix(in srgb, var(--accent) 15%, var(--bg)); }
-  .xt-row-pull .xt-name-col { background: color-mix(in srgb, var(--good) 15%, var(--bg)); }
-  .xt-split-row td { background: var(--ink); color: var(--on-ink); font-weight: 800; font-size: 10px; letter-spacing: .1em; padding: 6px; position: sticky; left: 0; }
   .xt-cell.filled { font-weight: 700; }
   /* ---------- Update 1.9: direct inline cell editing + combined push/pull
      table with a SPLIT divider row, matching the user's own Excel sheet
@@ -165,6 +159,29 @@
   .xt-split-row td { background: var(--ink); color: var(--on-ink); font-weight: 800; font-size: 10px; letter-spacing: .2em; text-align: center; padding: 7px; position: sticky; left: 0; }
   .xt-date-head.xt-dt-push { border-bottom: 2px solid var(--accent); }
   .xt-date-head.xt-dt-pull { border-bottom: 2px solid var(--good); }
+
+  /* ---------- Update 1.9.1: second sticky "Sätze"-label column (Gewicht/
+     Wiederhlng/Zeit), a real rowspan=2 name+muscle cell, thicker borders
+     between date-groups, and alternating dark/light-green banding per
+     exercise so a long horizontal scroll doesn't lose you mid-row -- all
+     per direct feedback against the previous Tabelle pass, matching the
+     Excel sheet's own 3-column header (Übung | Muskel-in-derselben-Zelle |
+     Sätze-Label) and its alternating row-group shading. ---------- */
+  .xt-label-col {
+    position: sticky; left: 76px; z-index: 2; background: var(--bg);
+    min-width: 38px; max-width: 38px; font-size: 8.5px; font-weight: 600;
+    color: var(--muted); text-align: center; padding: 4px 1px; white-space: normal;
+  }
+  .xt-corner { min-width: 114px; }
+  .xt-table .xt-group-start { border-left: 2.5px solid var(--ink); }
+  .xt-ex-a.xt-name-col, .xt-ex-a.xt-label-col { background: color-mix(in srgb, #2e7d32 26%, var(--bg)); }
+  .xt-ex-b.xt-name-col, .xt-ex-b.xt-label-col { background: color-mix(in srgb, #7cb342 22%, var(--bg)); }
+  tr.xt-ex-a td.xt-cell { background: color-mix(in srgb, #2e7d32 10%, var(--bg)); }
+  tr.xt-ex-b td.xt-cell { background: color-mix(in srgb, #7cb342 9%, var(--bg)); }
+  tr.xt-ex-a td.xt-cell.xt-na, tr.xt-ex-b td.xt-cell.xt-na {
+    background-image: repeating-linear-gradient(45deg, transparent, transparent 4px,
+      color-mix(in srgb, var(--muted) 12%, transparent) 4px, color-mix(in srgb, var(--muted) 12%, transparent) 8px);
+  }
   .xt-empty-note { padding: 50px 10px; text-align: center; color: var(--muted); font-size: 13px; }
   .xt-legend { display:flex; gap:16px; justify-content:center; margin-top:12px; font-size:11px; color:var(--muted); flex-wrap:wrap; }
   .xt-legend .dot { width:8px;height:8px;border-radius:2px; display:inline-block; margin-right:5px; vertical-align:middle; }
@@ -1865,11 +1882,16 @@ function renderXtTableView(){
       .sort((a,b)=> a.set_index - b.set_index);
   }
   // field: "weight" | "reps" | "time" -- which value this row of cells edits.
+  // Update 1.9.1: the first cell of every date-group gets a thicker left
+  // border ("die Striche zwischen jedem Trainingstag sollen dicker sein")
+  // so date groups stay visually distinct while horizontally scrolling.
   function cellsHtml(r, field){
     return cols.map(c=>{
       const applicable = c.day_type === r.day_type;
       if(!applicable){
-        return `<td class="xt-cell xt-na" colspan="1"></td>`.repeat(maxSets);
+        let out = "";
+        for(let i=0;i<maxSets;i++) out += `<td class="xt-cell xt-na${i===0?" xt-group-start":""}"></td>`;
+        return out;
       }
       const sets = setsFor(c, r.name);
       let out = "";
@@ -1881,46 +1903,60 @@ function renderXtTableView(){
           else if(field === "time") v = s.value_text || (s.reps != null ? fmt1(s.reps) : "");
           else v = s.reps != null ? fmt1(s.reps) : "";
         }
-        out += `<td class="xt-cell${v!==""?" filled":""}" data-editable="1" data-session-id="${c.id}" `
+        out += `<td class="xt-cell${v!==""?" filled":""}${i===0?" xt-group-start":""}" data-editable="1" data-session-id="${c.id}" `
           + `data-exercise="${r.name.replace(/"/g,'&quot;')}" data-set-index="${i}" data-field="${field}">${v}</td>`;
       }
       return out;
     }).join("");
   }
-  function primaryRow(r){
-    const label = r.kind === "weight" ? "Gewicht" : r.kind === "time" ? "Zeit" : "Wiederhlng";
-    const field = r.kind === "weight" ? "weight" : r.kind === "time" ? "time" : "reps";
-    const nameCell = `<td class="xt-name-col"><div class="xn">${xtDisplayName(r.name)}</div>`
-      + `<div class="xm">${r.muscle||""}</div><div class="xl">${label}</div></td>`;
-    return `<tr class="xt-row-${r.day_type}">${nameCell}${cellsHtml(r, field)}</tr>`;
-  }
-  function repsRow(r){
-    const nameCell = `<td class="xt-name-col"><div class="xl">Wiederhlng</div></td>`;
-    return `<tr class="xt-row-${r.day_type}">${nameCell}${cellsHtml(r, "reps")}</tr>`;
+  // Update 1.9.1: rebuilt per feedback -- the name+muscle cell is now a
+  // real rowspan=2 merge (only rendered once per exercise, "der erste
+  // Reiter sollte nur die Übung [und Muskelgruppe] drin haben und 2 Zeilen
+  // hoch sein") instead of repeating name/muscle text inside the Gewicht
+  // row only and leaving the Wiederholung row's name cell almost empty --
+  // that mismatch was exactly what made the two rows look uneven height.
+  // The Gewicht/Wiederhlng label moves into its own thin second sticky
+  // column, one row tall each, matching the Excel sheet's own 3-column
+  // layout (Übung | Muskel-in-derselben-Zelle | Sätze-Label).
+  function exerciseRows(r, exIndex){
+    const exClass = exIndex % 2 === 0 ? "xt-ex-a" : "xt-ex-b";
+    const nameCell = `<td class="xt-name-col ${exClass}" rowspan="${r.kind==='weight'?2:1}">`
+      + `<div class="xn">${xtDisplayName(r.name)}</div><div class="xm">${r.muscle||""}</div></td>`;
+    if(r.kind === "weight"){
+      const wLabel = `<td class="xt-label-col ${exClass}">Gewicht</td>`;
+      const rLabel = `<td class="xt-label-col ${exClass}">Wiederhlng</td>`;
+      const row1 = `<tr class="xt-row-${r.day_type} ${exClass}">${nameCell}${wLabel}${cellsHtml(r, "weight")}</tr>`;
+      const row2 = `<tr class="xt-row-${r.day_type} ${exClass}">${rLabel}${cellsHtml(r, "reps")}</tr>`;
+      return row1 + row2;
+    }
+    const label = r.kind === "time" ? "Zeit" : "Wiederhlng";
+    const field = r.kind === "time" ? "time" : "reps";
+    const labelCell = `<td class="xt-label-col ${exClass}">${label}</td>`;
+    return `<tr class="xt-row-${r.day_type} ${exClass}">${nameCell}${labelCell}${cellsHtml(r, field)}</tr>`;
   }
 
   // Update 1.8.5: each date header is still a "Bearbeiten" entry point too --
   // tapping it drops straight into the full wheel/exercise edit screen for
   // that column's session (useful for logging a whole session at once);
   // tapping an individual cell now edits just that value inline instead.
-  const dateHead = cols.map(c => `<th class="xt-date-head xt-date-edit${c.finished?"":" unfinished"} xt-dt-${c.day_type}" colspan="${maxSets}" data-session-id="${c.id}">${xtShortDate(c.date)}</th>`).join("");
-  const setHead = cols.map(()=> SET_LABELS.slice(0,maxSets).map(l=>`<th class="xt-set-head">${l}</th>`).join("")).join("");
+  // Update 1.9.1: date header also gets the thicker group-start border, and
+  // stays sticky above BOTH the push and the pull block ("Datum sollte auch
+  // über dem Pull Tag stehen") since it's one shared header row for the
+  // whole combined table, pinned via position:sticky the whole time you
+  // scroll down past SPLIT into the pull rows.
+  const dateHead = cols.map(c => `<th class="xt-date-head xt-date-edit xt-group-start${c.finished?"":" unfinished"} xt-dt-${c.day_type}" colspan="${maxSets}" data-session-id="${c.id}">${xtShortDate(c.date)}</th>`).join("");
+  const setHead = cols.map(()=> SET_LABELS.slice(0,maxSets).map((l,i)=>`<th class="xt-set-head${i===0?" xt-group-start":""}">${l}</th>`).join("")).join("");
   const bodyRows = [];
-  pushRows.forEach(r=>{
-    bodyRows.push(primaryRow(r));
-    if(r.kind === "weight") bodyRows.push(repsRow(r));
-  });
-  bodyRows.push(`<tr class="xt-split-row"><td colspan="${1 + cols.length*maxSets}">SPLIT</td></tr>`);
-  pullRows.forEach(r=>{
-    bodyRows.push(primaryRow(r));
-    if(r.kind === "weight") bodyRows.push(repsRow(r));
-  });
+  let exIndex = 0;
+  pushRows.forEach(r=>{ bodyRows.push(exerciseRows(r, exIndex++)); });
+  bodyRows.push(`<tr class="xt-split-row"><td colspan="${2 + cols.length*maxSets}">SPLIT</td></tr>`);
+  pullRows.forEach(r=>{ bodyRows.push(exerciseRows(r, exIndex++)); });
 
   content.innerHTML = addDayBtnHtml + `
     <div class="xt-wrap">
       <table class="xt-table">
         <thead>
-          <tr><th class="xt-corner" rowspan="2"></th>${dateHead}</tr>
+          <tr><th class="xt-corner" colspan="2" rowspan="2"></th>${dateHead}</tr>
           <tr>${setHead}</tr>
         </thead>
         <tbody>${bodyRows.join("")}</tbody>
