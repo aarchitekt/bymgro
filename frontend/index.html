@@ -448,6 +448,32 @@
   .cal-dot.bad { background: var(--accent); }
   .cal-dot.clean { background: var(--good); opacity: .55; }
 
+  /* ---------- Update 1.9.4: KI-Auswertung + Coach-Chat ---------- */
+  .ai-scale .goal-chip { padding: 12px 4px; font-size: 15px; }
+  .ai-scale-hint { display:flex; justify-content:space-between; font-size: 10.5px; color: var(--muted); margin-top: 4px; padding: 0 2px; }
+  .ai-loading { text-align:center; color: var(--muted); font-size: 13px; padding: 30px 10px; }
+  .ai-result-card { margin-bottom: 10px; }
+  .ai-result-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin-bottom: 8px; }
+  .ai-suggestion-row { display:flex; justify-content:space-between; align-items:baseline; gap:10px; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+  .ai-suggestion-row:last-child { border-bottom: none; }
+  .ai-suggestion-row .asn { font-weight: 700; }
+  .ai-suggestion-row .asv { color: var(--accent); font-weight: 700; text-align:right; white-space:nowrap; }
+  .ai-suggestion-row .asnote { display:block; font-size: 11px; color: var(--muted); font-weight:400; }
+  .ai-tip-row { display:flex; gap: 8px; align-items:flex-start; padding: 6px 0; font-size: 13px; }
+  .ai-tip-row .ai-tip-icon { color: var(--accent); flex-shrink:0; width:16px; height:16px; margin-top:1px; }
+  .ai-neglect-chips { display:flex; flex-wrap:wrap; gap:6px; }
+  .ai-neglect-chip { background: color-mix(in srgb, var(--push-c) 16%, var(--panel)); border: 1px solid var(--push-c); color: var(--ink); border-radius: 999px; padding: 5px 12px; font-size: 12px; font-weight: 600; }
+
+  #ai-coach-screen { padding-bottom: 0; }
+  .ai-coach-messages { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; display:flex; flex-direction:column; gap: 10px; padding-bottom: 12px; }
+  .ai-coach-msg { max-width: 82%; padding: 10px 13px; border-radius: 16px; font-size: 13.5px; line-height: 1.45; white-space: pre-wrap; }
+  .ai-coach-msg.user { align-self: flex-end; background: var(--ink); color: var(--on-ink); border-bottom-right-radius: 4px; }
+  .ai-coach-msg.assistant { align-self: flex-start; background: var(--panel); border: 1px solid var(--line); border-bottom-left-radius: 4px; }
+  .ai-coach-msg.pending { color: var(--muted); font-style: italic; }
+  .ai-coach-input-row { display:flex; gap:8px; padding: 10px 0 max(10px, env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: var(--bg); }
+  .ai-coach-input-row input { flex:1; min-width:0; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; font-size: 15px; color: var(--ink); font-family: inherit; }
+  .ai-coach-input-row .btn { width: 46px; flex-shrink:0; padding: 0; }
+
   /* ---------- Update 1.3.2: "training beenden" always-visible finish pill ---------- */
   .finish-pill { position:absolute; bottom: 14px; right: 14px; display:flex; align-items:center; gap:6px;
     background: var(--panel); border: 1px solid var(--line); border-radius: 999px; color: var(--ink);
@@ -665,6 +691,7 @@
         </div>
 
         <div class="card" style="display:flex;flex-direction:column;gap:8px;margin-top:14px;">
+          <button class="btn secondary" id="open-coach-btn" style="justify-content:flex-start;"><span></span> KI-Coach fragen</button>
           <button class="btn secondary" id="open-nutrition-btn" style="justify-content:flex-start;"><span></span> Ernährung &amp; Supplements</button>
           <button class="btn secondary" id="open-habits-btn" style="justify-content:flex-start;"><span></span> Habit-Tracker</button>
           <button class="btn secondary" id="open-achievements-btn" style="justify-content:flex-start;"><span></span> Erfolge</button>
@@ -756,6 +783,55 @@
       <div class="cal-strip" id="cal-strip"></div>
     </section>
 
+    <!-- ===================== KI-AUSWERTUNG (Update 1.9.4) =====================
+         Kleiner Fragebogen direkt nach dem Training ("wie schwer/wie
+         geschlaucht"), dann eine KI-Auswertung mit Gewichts-/Wdh-Vorschlägen
+         fürs nächste Mal, ein paar Tipps, und ggf. vernachlässigte
+         Muskelgruppen. -->
+    <section id="ai-checkin-screen" class="screen">
+      <div class="topbar"><h1>Trainings-Auswertung</h1><button class="icon-btn" id="ai-checkin-close-btn"></button></div>
+      <div class="card" id="ai-checkin-form">
+        <div class="field">
+          <label>Wie schwer fandest du das Training?</label>
+          <div class="goal-grid ai-scale" id="ai-difficulty-scale" style="grid-template-columns:repeat(5,1fr);">
+            <div class="goal-chip" data-val="1">1</div><div class="goal-chip" data-val="2">2</div>
+            <div class="goal-chip" data-val="3">3</div><div class="goal-chip" data-val="4">4</div>
+            <div class="goal-chip" data-val="5">5</div>
+          </div>
+          <div class="ai-scale-hint"><span>leicht</span><span>schwer</span></div>
+        </div>
+        <div class="field">
+          <label>Wie geschlaucht bist du gerade?</label>
+          <div class="goal-grid ai-scale" id="ai-exhaustion-scale" style="grid-template-columns:repeat(5,1fr);">
+            <div class="goal-chip" data-val="1">1</div><div class="goal-chip" data-val="2">2</div>
+            <div class="goal-chip" data-val="3">3</div><div class="goal-chip" data-val="4">4</div>
+            <div class="goal-chip" data-val="5">5</div>
+          </div>
+          <div class="ai-scale-hint"><span>frisch</span><span>platt</span></div>
+        </div>
+        <div class="field">
+          <label>Notiz (optional)</label>
+          <textarea id="ai-checkin-note" rows="2" placeholder="z.B. Schulter zwickt etwas"></textarea>
+        </div>
+        <button class="btn" id="ai-checkin-submit-btn">KI-Auswertung anfordern</button>
+        <button class="btn ghost small" id="ai-checkin-skip-btn" style="margin-top:6px;">Überspringen</button>
+      </div>
+      <div class="card ai-loading" id="ai-checkin-loading" style="display:none;">KI analysiert dein Training…</div>
+      <div id="ai-checkin-result" style="display:none;"></div>
+    </section>
+
+    <!-- ===================== KI-COACH CHAT (Update 1.9.4) =====================
+         Offener Chat für Fragen jenseits des Trainingsplans ("wie kann ich
+         meine Adern mehr sehen lassen"). -->
+    <section id="ai-coach-screen" class="screen">
+      <div class="topbar"><h1>KI-Coach</h1><button class="icon-btn" id="ai-coach-close-btn"></button></div>
+      <div class="ai-coach-messages" id="ai-coach-messages"></div>
+      <div class="ai-coach-input-row" id="ai-coach-input-row">
+        <input type="text" id="ai-coach-input" placeholder="Frag deinen Coach etwas…" autocomplete="off">
+        <button class="btn small" id="ai-coach-send-btn">→</button>
+      </div>
+    </section>
+
   </div>
 </div>
 <!-- ===================== LOGIN (Update 1.6) ===================== -->
@@ -794,7 +870,7 @@
 </div>
 
 <script>
-const APP_VERSION = "1.9.3";
+const APP_VERSION = "1.9.4";
 document.getElementById("app-version-line").textContent = "bymgro v" + APP_VERSION;
 
 /* ================= ICONS (monochrome, currentColor) ================= */
@@ -841,6 +917,8 @@ setIcon("coach-icon","sparkle");
 setIcon("plan-close-btn","close");
 setIcon("nutrition-close-btn","close");
 setIcon("habits-close-btn","close");
+setIcon("ai-checkin-close-btn","close");
+setIcon("ai-coach-close-btn","close");
 setIcon("add-friend-btn","plus");
 setIcon("add-supp-btn","plus");
 /* Update 1.2: Memori-style layout icons */
@@ -857,6 +935,7 @@ document.querySelector("#h-drugs .hi").innerHTML = ic("pill");
 document.querySelector("#open-nutrition-btn span").innerHTML = ic("apple");
 document.querySelector("#open-habits-btn span").innerHTML = ic("calendar");
 document.querySelector("#open-achievements-btn span").innerHTML = ic("trophy");
+document.querySelector("#open-coach-btn span").innerHTML = ic("sparkle");
 document.getElementById("streak-flame-ico").innerHTML = ic("flame");
 document.getElementById("unlock-close-btn");
 
@@ -1587,7 +1666,8 @@ $("finish-workout-btn").addEventListener("click", ()=>{
 async function finishWorkout(){
   const bwStr = prompt("Aktuelles Körpergewicht in kg (optional, Enter zum Überspringen):", "");
   const bw = bwStr && !isNaN(parseFloat(bwStr)) ? parseFloat(bwStr) : null;
-  const result = await api(`/api/workout/${state.session.session_id}/finish`, {method:"POST", body: JSON.stringify({bodyweight_kg: bw})});
+  const finishedSessionId = state.session.session_id;
+  const result = await api(`/api/workout/${finishedSessionId}/finish`, {method:"POST", body: JSON.stringify({bodyweight_kg: bw})});
   // Update 1.4: a real summary instead of just "Workout gespeichert" -- sets
   // logged + total volume (kg × Wdh, summed) moved this session.
   let totalSets = 0, totalVolume = 0;
@@ -1601,6 +1681,11 @@ async function finishWorkout(){
   state.session = null;
   await initWorkout();
   if(result.gamification) handleGamification(result.gamification);
+  // Update 1.9.4: kleiner Fragebogen -> KI-Auswertung direkt nach dem
+  // Training (nur bei echtem Live-Finish, nicht beim retroaktiven
+  // Bearbeiten -- das läuft über exitEditSession() und ruft finishWorkout()
+  // gar nicht auf).
+  await aiCheckinFlow(finishedSessionId);
 }
 
 /* ================= PLAN EDITOR ================= */
@@ -2713,6 +2798,164 @@ function renderCalStrip(history){
     return `<div class="cal-dot ${bad?'bad':'clean'}"></div>`;
   }).join("");
 }
+
+/* ================= KI-AUSWERTUNG + KI-COACH (Update 1.9.4) =================
+   Zwei Teile:
+   1. Nach jedem live beendeten Training (finishWorkout()) ein kleiner
+      Fragebogen (Schwierigkeit/Erschöpfung/Notiz) -> KI-Auswertung mit
+      Gewichts-/Wdh-Vorschlägen fürs nächste Mal (landen automatisch in
+      plan_exercises.last_weight/last_reps, siehe storage.apply_checkin_
+      suggestions() -- der Wheel-Default-Mechanismus von Update 1.8 greift
+      dafür ohne weitere Frontend-Änderung), ein paar Tipps, und ggf.
+      vernachlässigte Muskelgruppen.
+   2. Ein offener Chat (KI-Coach) für alles andere ("wie kann ich meine
+      Adern mehr sehen lassen"), erreichbar über Einstellungen.
+   Beides braucht ANTHROPIC_API_KEY serverseitig -- ohne Key liefert die
+   API sauber 503, der Fragebogen wird dann einfach übersprungen und der
+   Coach-Chat zeigt einen Hinweis statt einer Fehlermeldung. */
+function escHtml(s){
+  return String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
+let aiCoachConfigured = null; // cached per app-load: null=unknown, true/false once checked
+async function isAiCoachConfigured(){
+  if(aiCoachConfigured !== null) return aiCoachConfigured;
+  try{ aiCoachConfigured = (await api("/api/coach/status")).configured; }
+  catch(e){ aiCoachConfigured = false; }
+  return aiCoachConfigured;
+}
+
+/* ---- Post-workout check-in ---- */
+let aiCheckinState = { sessionId: null, difficulty: null, exhaustion: null };
+async function aiCheckinFlow(sessionId){
+  if(!(await isAiCoachConfigured())) return; // kein Key eingerichtet -> Fragebogen gar nicht erst zeigen
+  aiCheckinState = { sessionId, difficulty: null, exhaustion: null };
+  $("ai-checkin-form").style.display = "";
+  $("ai-checkin-loading").style.display = "none";
+  $("ai-checkin-result").style.display = "none";
+  $("ai-checkin-result").innerHTML = "";
+  $("ai-checkin-note").value = "";
+  document.querySelectorAll("#ai-difficulty-scale .goal-chip, #ai-exhaustion-scale .goal-chip").forEach(c=>c.classList.remove("on"));
+  showScreen("ai-checkin-screen");
+}
+function wireAiScale(containerId, key){
+  document.querySelectorAll(`#${containerId} .goal-chip`).forEach(chip=>{
+    chip.addEventListener("click", ()=>{
+      aiCheckinState[key] = parseInt(chip.dataset.val, 10);
+      document.querySelectorAll(`#${containerId} .goal-chip`).forEach(c=> c.classList.toggle("on", c===chip));
+    });
+  });
+}
+wireAiScale("ai-difficulty-scale", "difficulty");
+wireAiScale("ai-exhaustion-scale", "exhaustion");
+$("ai-checkin-close-btn").addEventListener("click", ()=> showScreen("progress-screen"));
+$("ai-checkin-skip-btn").addEventListener("click", ()=> showScreen("progress-screen"));
+$("ai-checkin-submit-btn").addEventListener("click", async ()=>{
+  if(!aiCheckinState.difficulty || !aiCheckinState.exhaustion){
+    toast("Bitte beide Skalen antippen"); return;
+  }
+  $("ai-checkin-form").style.display = "none";
+  $("ai-checkin-loading").style.display = "";
+  try{
+    const result = await api(`/api/workout/${aiCheckinState.sessionId}/checkin`, {
+      method: "POST",
+      body: JSON.stringify({
+        difficulty: aiCheckinState.difficulty,
+        exhaustion: aiCheckinState.exhaustion,
+        note: $("ai-checkin-note").value.trim() || null,
+      }),
+    });
+    renderAiCheckinResult(result);
+    // die Vorschläge sind serverseitig schon in last_weight/last_reps
+    // übernommen -- lokalen Plan-Cache invalidieren, damit die nächste
+    // Trainingsansicht die neuen Werte zieht statt der alten aus state.plan.
+    state.plan = null;
+  }catch(e){
+    $("ai-checkin-loading").style.display = "none";
+    toast("KI-Auswertung fehlgeschlagen");
+    showScreen("progress-screen");
+  }
+});
+function renderAiCheckinResult(result){
+  $("ai-checkin-loading").style.display = "none";
+  const wrap = $("ai-checkin-result");
+  let html = "";
+  if(result.suggestions && result.suggestions.length){
+    html += `<div class="card ai-result-card"><div class="ai-result-title">Nächstes Mal</div>` +
+      result.suggestions.map(s=>{
+        const parts = [];
+        if(s.next_weight != null) parts.push(fmt1(s.next_weight) + "kg");
+        if(s.next_reps != null) parts.push("x" + fmt1(s.next_reps));
+        return `<div class="ai-suggestion-row"><span class="asn">${escHtml(s.exercise)}</span>` +
+          `<span class="asv">${escHtml(parts.join(" "))}${s.note ? `<span class="asnote">${escHtml(s.note)}</span>` : ""}</span></div>`;
+      }).join("") + `</div>`;
+  }
+  if(result.tips && result.tips.length){
+    html += `<div class="card ai-result-card"><div class="ai-result-title">Tipps</div>` +
+      result.tips.map(t => `<div class="ai-tip-row"><span class="ai-tip-icon">${ic("sparkle")}</span><span>${escHtml(t)}</span></div>`).join("") +
+      `</div>`;
+  }
+  if(result.neglected_muscles && result.neglected_muscles.length){
+    html += `<div class="card ai-result-card"><div class="ai-result-title">Kommt zu kurz</div>` +
+      `<div class="ai-neglect-chips">${result.neglected_muscles.map(m => `<span class="ai-neglect-chip">${escHtml(m)}</span>`).join("")}</div></div>`;
+  }
+  if(!html){
+    html = `<div class="card ai-result-card" style="color:var(--muted);text-align:center;">Keine besonderen Auffälligkeiten.</div>`;
+  }
+  html += `<button class="btn" id="ai-checkin-done-btn" style="margin-top:4px;">Fertig</button>`;
+  wrap.innerHTML = html;
+  wrap.style.display = "";
+  $("ai-checkin-done-btn").addEventListener("click", ()=> showScreen("progress-screen"));
+}
+
+/* ---- KI-Coach Chat ---- */
+let aiCoachHistory = [];
+$("open-coach-btn").addEventListener("click", async ()=>{
+  showScreen("ai-coach-screen");
+  const configured = await isAiCoachConfigured();
+  if(!configured){
+    $("ai-coach-messages").innerHTML = `<div class="ai-coach-msg assistant">KI-Coach ist noch nicht eingerichtet (fehlender API-Key auf dem Server). Frag Claude, den Key in Railway als ANTHROPIC_API_KEY zu hinterlegen.</div>`;
+    $("ai-coach-input-row").style.display = "none";
+    return;
+  }
+  $("ai-coach-input-row").style.display = "";
+  try{
+    aiCoachHistory = await api("/api/coach/messages");
+  }catch(e){ aiCoachHistory = []; }
+  renderAiCoachMessages();
+});
+$("ai-coach-close-btn").addEventListener("click", ()=> showScreen("settings-screen"));
+function renderAiCoachMessages(){
+  const wrap = $("ai-coach-messages");
+  if(!aiCoachHistory.length){
+    wrap.innerHTML = `<div class="ai-coach-msg assistant">Frag mich alles rund ums Training -- z.B. "wie kann ich meine Adern mehr sehen lassen" oder "was tun bei Formtief beim Bankdrücken".</div>`;
+  } else {
+    wrap.innerHTML = aiCoachHistory.map(m =>
+      `<div class="ai-coach-msg ${m.role === "user" ? "user" : "assistant"}">${escHtml(m.content)}</div>`
+    ).join("");
+  }
+  wrap.scrollTop = wrap.scrollHeight;
+}
+async function sendAiCoachMessage(){
+  const input = $("ai-coach-input");
+  const text = input.value.trim();
+  if(!text) return;
+  input.value = "";
+  aiCoachHistory.push({role:"user", content:text});
+  renderAiCoachMessages();
+  const wrap = $("ai-coach-messages");
+  wrap.insertAdjacentHTML("beforeend", `<div class="ai-coach-msg assistant pending" id="ai-coach-pending">…</div>`);
+  wrap.scrollTop = wrap.scrollHeight;
+  try{
+    const res = await api("/api/coach/ask", {method:"POST", body: JSON.stringify({message:text})});
+    aiCoachHistory.push({role:"assistant", content:res.reply});
+  }catch(e){
+    aiCoachHistory.push({role:"assistant", content:"Konnte gerade nicht antworten -- versuch's nochmal."});
+  }
+  renderAiCoachMessages();
+}
+$("ai-coach-send-btn").addEventListener("click", sendAiCoachMessage);
+$("ai-coach-input").addEventListener("keydown", (e)=>{ if(e.key === "Enter"){ e.preventDefault(); sendAiCoachMessage(); } });
 
 /* ================= TIMER (wind-up egg timer) ================= */
 (function(){

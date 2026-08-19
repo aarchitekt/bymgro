@@ -11,8 +11,9 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from backend import storage
+from backend import ai_coach
 
-APP_VERSION = "1.9.3"
+APP_VERSION = "1.9.4"
 
 storage.init_db()
 
@@ -248,6 +249,96 @@ def api_update_session_date(session_id: int, body: SessionDateIn, X_User_Id: Opt
     if not storage.update_session_date(u, session_id, body.date):
         raise HTTPException(404, "session not found")
     return {"ok": True}
+
+
+# ---------- API: KI-Auswertung + Coach-Chat (Update 1.9.4) ----------
+# Both require ANTHROPIC_API_KEY as an env var (set it in Railway ->
+# Variables). Without it these return 503 with a clear message instead of
+# crashing -- the rest of the app works fine either way.
+
+class CheckinIn(BaseModel):
+    difficulty: int  # 1 (sehr leicht) .. 5 (extrem schwer)
+    exhaustion: int  # 1 (frisch) .. 5 (komplett platt)
+    note: Optional[str] = None
+
+
+class ChatIn(BaseModel):
+    message: str
+
+
+def _profile_summary_text(user_id: str) -> str:
+    profile = storage.get_profile(user_id) or {}
+    plan = storage.get_plan(user_id)
+    push_names = ", ".join(e["name"] for e in plan.get("push", []))
+    pull_names = ", ".join(e["name"] for e in plan.get("pull", []))
+    bits = []
+    if profile.get("goal"):
+        bits.append(f"Ziel: {profile['goal']}")
+    if profile.get("weight_kg"):
+        bits.append(f"Körpergewicht: {profile['weight_kg']}kg")
+    if profile.get("age"):
+        bits.append(f"Alter: {profile['age']}")
+    bits.append(f"Push-Übungen: {push_names or '(keine)'}")
+    bits.append(f"Pull-Übungen: {pull_names or '(keine)'}")
+    return " | ".join(bits)
+
+
+@app.get("/api/coach/status")
+def api_coach_status():
+    return {"configured": ai_coach.is_configured()}
+
+
+@app.post("/api/workout/{session_id}/checkin")
+def api_workout_checkin(session_id: int, body: CheckinIn, X_User_Id: Optional[str] = Header(None)):
+    u = uid(X_User_Id)
+    sess = storage.get_session(u, session_id)
+    if not sess:
+        raise HTTPException(404, "session not found")
+    if not (1 <= body.difficulty <= 5 and 1 <= body.exhaustion <= 5):
+        raise HTTPException(400, "difficulty/exhaustion müssen 1-5 sein")
+    exercises_summary = storage.session_sets_summary_text(session_id)
+    muscle_summary = storage.muscle_frequency_summary(u)
+    try:
+        result = ai_coach.analyze_checkin(exercises_summary, body.difficulty, body.exhaustion, body.note, muscle_summary)
+    except RuntimeError:
+        raise HTTPException(503, "KI-Auswertung ist noch nicht eingerichtet (ANTHROPIC_API_KEY fehlt)")
+    except Exception as e:  # noqa: BLE001 -- surface upstream API errors as a clean 502 instead of a 500
+        raise HTTPException(502, f"KI-Auswertung fehlgeschlagen: {e}")
+    storage.save_checkin(u, session_id, body.difficulty, body.exhaustion, body.note, result)
+    storage.apply_checkin_suggestions(u, session_id, result.get("suggestions"))
+    return result
+
+
+@app.get("/api/workout/{session_id}/checkin")
+def api_get_workout_checkin(session_id: int, X_User_Id: Optional[str] = Header(None)):
+    u = uid(X_User_Id)
+    checkin = storage.get_checkin(u, session_id)
+    if not checkin:
+        raise HTTPException(404, "no checkin for this session")
+    return checkin
+
+
+@app.get("/api/coach/messages")
+def api_coach_messages(limit: int = 50, X_User_Id: Optional[str] = Header(None)):
+    return storage.get_coach_messages(uid(X_User_Id), limit)
+
+
+@app.post("/api/coach/ask")
+def api_coach_ask(body: ChatIn, X_User_Id: Optional[str] = Header(None)):
+    u = uid(X_User_Id)
+    if not body.message or not body.message.strip():
+        raise HTTPException(400, "message darf nicht leer sein")
+    history = storage.get_coach_messages(u, limit=20)
+    profile_summary = _profile_summary_text(u)
+    try:
+        reply = ai_coach.chat_reply(history, body.message.strip(), profile_summary)
+    except RuntimeError:
+        raise HTTPException(503, "KI-Coach ist noch nicht eingerichtet (ANTHROPIC_API_KEY fehlt)")
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(502, f"KI-Coach fehlgeschlagen: {e}")
+    storage.save_coach_message(u, "user", body.message.strip())
+    storage.save_coach_message(u, "assistant", reply)
+    return {"reply": reply}
 
 
 @app.get("/api/history")

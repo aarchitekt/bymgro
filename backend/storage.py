@@ -9,6 +9,7 @@ import sqlite3
 import string
 from contextlib import contextmanager
 from pathlib import Path
+from typing import Optional
 
 DB_PATH = os.environ.get("BYMGRO_DB_PATH", str(Path(__file__).resolve().parent.parent / "bymgro.db"))
 SEED_PATH = Path(__file__).resolve().parent / "seed_data.json"
@@ -150,6 +151,33 @@ CREATE TABLE IF NOT EXISTS auth_credentials (
 CREATE TABLE IF NOT EXISTS seed_meta (
     key TEXT PRIMARY KEY,
     value TEXT
+);
+
+-- Update 1.9.4: KI-Auswertung nach dem Training ("kleiner Fragebogen ...
+-- Gewichte/Wiederholungen automatisch vorgeschlagen"). One row per
+-- finished session, holds the questionnaire answers plus the model's
+-- JSON response so it doesn't need to be re-generated every time the
+-- Tabelle/history is reloaded.
+CREATE TABLE IF NOT EXISTS session_checkin (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id INTEGER NOT NULL UNIQUE REFERENCES workout_sessions(id) ON DELETE CASCADE,
+    user_id TEXT NOT NULL,
+    difficulty INTEGER,
+    exhaustion INTEGER,
+    note TEXT,
+    ai_result TEXT,
+    created_at TEXT NOT NULL
+);
+
+-- Update 1.9.4: KI-Coach Chat ("man sollte auch Fragen stellen können"),
+-- a simple flat message log per user so the conversation survives an app
+-- reload instead of resetting every time.
+CREATE TABLE IF NOT EXISTS coach_messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id TEXT NOT NULL,
+    role TEXT NOT NULL,
+    content TEXT NOT NULL,
+    created_at TEXT NOT NULL
 );
 """
 
@@ -1104,6 +1132,145 @@ def update_session_date(user_id: str, session_id: int, new_date: str) -> bool:
             "UPDATE workout_sessions SET date=? WHERE id=?", (new_date, session_id)
         )
         return True
+
+
+# ---------- Update 1.9.4: KI-Auswertung nach dem Training + Coach-Chat ----------
+
+def session_sets_summary_text(session_id: int) -> str:
+    """Formats a finished session's logged sets as plain text for the AI
+    prompt, e.g. 'Benchpress: 42.5kg x12, 42.5kg x10, 42.5kg x8'."""
+    with get_conn() as conn:
+        rows = conn.execute(
+            "SELECT exercise_name, set_index, weight, reps, value_text FROM session_sets "
+            "WHERE session_id=? AND logged=1 ORDER BY exercise_name, set_index",
+            (session_id,),
+        ).fetchall()
+    by_ex: dict[str, list[str]] = {}
+    for r in rows:
+        if r["weight"] is not None and r["reps"] is not None:
+            part = f"{fmt_num(r['weight'])}kg x{fmt_num(r['reps'])}"
+        elif r["weight"] is not None:
+            part = f"{fmt_num(r['weight'])}kg"
+        elif r["value_text"]:
+            part = r["value_text"]
+        elif r["reps"] is not None:
+            part = f"{fmt_num(r['reps'])}"
+        else:
+            continue
+        by_ex.setdefault(r["exercise_name"], []).append(part)
+    return "\n".join(f"{name}: {', '.join(parts)}" for name, parts in by_ex.items()) or "(keine Sätze geloggt)"
+
+
+def fmt_num(v) -> str:
+    try:
+        f = float(v)
+    except (TypeError, ValueError):
+        return str(v)
+    return str(int(f)) if f.is_integer() else str(f)
+
+
+def muscle_frequency_summary(user_id: str, days: int = 28) -> str:
+    """How often each muscle group (from the user's own plan) has been
+    trained in the last N days -- used both as AI context and to spot
+    "neglected_muscles". Lists every muscle group the plan knows about,
+    including ones at 0, so the model can actually see gaps."""
+    with get_conn() as conn:
+        muscles = [r["muscle"] for r in conn.execute(
+            "SELECT DISTINCT muscle FROM plan_exercises WHERE user_id=? AND muscle IS NOT NULL AND muscle != ''",
+            (user_id,),
+        ).fetchall()]
+        cutoff = (datetime.date.today() - datetime.timedelta(days=days)).isoformat()
+        rows = conn.execute(
+            """SELECT pe.muscle AS muscle, COUNT(DISTINCT s.id) AS cnt
+               FROM session_sets ss
+               JOIN workout_sessions s ON s.id = ss.session_id
+               JOIN plan_exercises pe ON pe.user_id = s.user_id AND pe.name = ss.exercise_name
+               WHERE s.user_id=? AND s.date >= ? AND ss.logged=1 AND pe.muscle IS NOT NULL AND pe.muscle != ''
+               GROUP BY pe.muscle""",
+            (user_id, cutoff),
+        ).fetchall()
+    counts = {r["muscle"]: r["cnt"] for r in rows}
+    lines = [f"{m}: {counts.get(m, 0)}x" for m in sorted(set(muscles))]
+    return "\n".join(lines) if lines else "(keine Muskelgruppen-Daten)"
+
+
+def save_checkin(user_id: str, session_id: int, difficulty: Optional[int], exhaustion: Optional[int],
+                  note: Optional[str], ai_result: dict) -> None:
+    with get_conn() as conn:
+        conn.execute(
+            """INSERT INTO session_checkin (session_id, user_id, difficulty, exhaustion, note, ai_result, created_at)
+               VALUES (?,?,?,?,?,?,datetime('now'))
+               ON CONFLICT(session_id) DO UPDATE SET
+                 difficulty=excluded.difficulty, exhaustion=excluded.exhaustion, note=excluded.note,
+                 ai_result=excluded.ai_result, created_at=excluded.created_at""",
+            (session_id, user_id, difficulty, exhaustion, note, json.dumps(ai_result)),
+        )
+
+
+def get_checkin(user_id: str, session_id: int) -> dict | None:
+    with get_conn() as conn:
+        row = conn.execute(
+            "SELECT * FROM session_checkin WHERE session_id=? AND user_id=?", (session_id, user_id)
+        ).fetchone()
+    if not row:
+        return None
+    result = dict(row)
+    try:
+        result["ai_result"] = json.loads(result["ai_result"]) if result["ai_result"] else None
+    except (TypeError, ValueError):
+        result["ai_result"] = None
+    return result
+
+
+def apply_checkin_suggestions(user_id: str, session_id: int, suggestions: list) -> None:
+    """Writes the AI's next_weight/next_reps suggestions straight into
+    plan_exercises.last_weight/last_reps(_by_set) -- the exact fields the
+    workout wheel already reads to seed its default value (Update 1.8), so
+    "für die nächste Übung sollen Gewichte/Wiederholungen automatisch
+    vorgeschlagen werden" just works via the existing mechanism, no new
+    frontend default-picking logic needed."""
+    with get_conn() as conn:
+        for s in suggestions or []:
+            name = s.get("exercise")
+            if not name:
+                continue
+            next_weight = s.get("next_weight")
+            next_reps = s.get("next_reps")
+            if next_weight is None and next_reps is None:
+                continue
+            set_indices = [r["set_index"] for r in conn.execute(
+                "SELECT DISTINCT set_index FROM session_sets WHERE session_id=? AND exercise_name=? AND logged=1",
+                (session_id, name),
+            ).fetchall()] or [0]
+            update_fields, params = [], []
+            if next_weight is not None:
+                update_fields.append("last_weight=?"); params.append(next_weight)
+            if next_reps is not None:
+                by_set = {str(i): next_reps for i in set_indices}
+                update_fields.append("last_reps=?"); params.append(next_reps)
+                update_fields.append("last_reps_by_set=?"); params.append(json.dumps(by_set))
+            if update_fields:
+                params += [user_id, name]
+                conn.execute(
+                    f"UPDATE plan_exercises SET {', '.join(update_fields)} WHERE user_id=? AND name=?", params,
+                )
+
+
+def save_coach_message(user_id: str, role: str, content: str) -> None:
+    with get_conn() as conn:
+        conn.execute(
+            "INSERT INTO coach_messages (user_id, role, content, created_at) VALUES (?,?,?,datetime('now'))",
+            (user_id, role, content),
+        )
+
+
+def get_coach_messages(user_id: str, limit: int = 50) -> list[dict]:
+    with get_conn() as conn:
+        rows = conn.execute(
+            "SELECT role, content, created_at FROM coach_messages WHERE user_id=? ORDER BY id DESC LIMIT ?",
+            (user_id, limit),
+        ).fetchall()
+    return [dict(r) for r in reversed(rows)]
 
 
 def get_history(user_id: str, limit: int = 60) -> list[dict]:
