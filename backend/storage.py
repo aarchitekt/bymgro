@@ -1076,6 +1076,36 @@ def get_session(user_id: str, session_id: int) -> dict | None:
     return result
 
 
+# Update 1.9.3: "es sollte auch die Möglichkeit geben Trainings zu löschen"
+# -- there was previously no delete path at all, which is exactly why
+# accidentally-created empty sessions (e.g. from repeatedly retrying
+# "+ Trainingstag" hoping it would let them fix/remove an existing day)
+# just kept piling up with no way to clean them back out.
+def delete_session(user_id: str, session_id: int) -> bool:
+    with get_conn() as conn:
+        sess = conn.execute(
+            "SELECT id FROM workout_sessions WHERE id=? AND user_id=?", (session_id, user_id)
+        ).fetchone()
+        if not sess:
+            return False
+        conn.execute("DELETE FROM session_sets WHERE session_id=?", (session_id,))
+        conn.execute("DELETE FROM workout_sessions WHERE id=?", (session_id,))
+        return True
+
+
+def update_session_date(user_id: str, session_id: int, new_date: str) -> bool:
+    with get_conn() as conn:
+        sess = conn.execute(
+            "SELECT id FROM workout_sessions WHERE id=? AND user_id=?", (session_id, user_id)
+        ).fetchone()
+        if not sess:
+            return False
+        conn.execute(
+            "UPDATE workout_sessions SET date=? WHERE id=?", (new_date, session_id)
+        )
+        return True
+
+
 def get_history(user_id: str, limit: int = 60) -> list[dict]:
     # Update 1.8.5: no longer filters to finished=1 only. A session that was
     # started but never explicitly "finished" (e.g. the user closed the app

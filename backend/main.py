@@ -12,7 +12,7 @@ from pydantic import BaseModel
 
 from backend import storage
 
-APP_VERSION = "1.9.2"
+APP_VERSION = "1.9.3"
 
 storage.init_db()
 
@@ -224,6 +224,30 @@ def api_get_session(session_id: int, X_User_Id: Optional[str] = Header(None)):
     if not sess:
         raise HTTPException(404, "session not found")
     return sess
+
+
+# Update 1.9.3: delete + retroactively move a session's date, both driven
+# straight from the Tabelle instead of the full workout screen ("man sollte
+# niemals auf einen neuen Trainingsbildschirm gelangen sondern immer nur in
+# der Tabelle arbeiten können").
+class SessionDateIn(BaseModel):
+    date: str
+
+
+@app.delete("/api/workout/{session_id}")
+def api_delete_session(session_id: int, X_User_Id: Optional[str] = Header(None)):
+    u = uid(X_User_Id)
+    if not storage.delete_session(u, session_id):
+        raise HTTPException(404, "session not found")
+    return {"ok": True}
+
+
+@app.put("/api/workout/{session_id}/date")
+def api_update_session_date(session_id: int, body: SessionDateIn, X_User_Id: Optional[str] = Header(None)):
+    u = uid(X_User_Id)
+    if not storage.update_session_date(u, session_id, body.date):
+        raise HTTPException(404, "session not found")
+    return {"ok": True}
 
 
 @app.get("/api/history")

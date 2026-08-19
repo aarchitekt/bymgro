@@ -794,7 +794,7 @@
 </div>
 
 <script>
-const APP_VERSION = "1.9.2";
+const APP_VERSION = "1.9.3";
 document.getElementById("app-version-line").textContent = "bymgro v" + APP_VERSION;
 
 /* ================= ICONS (monochrome, currentColor) ================= */
@@ -2000,8 +2000,14 @@ function renderXtTableView(){
   `;
   const sessById = {};
   cols.forEach(c => sessById[c.id] = { id: c.id, day_type: c.day_type, date: c.date, sets: c.sets });
+  // Update 1.9.3: tapping the date header used to drop you into the full
+  // workout screen (enterEditSession) -- per explicit feedback ("man sollte
+  // niemals auf einen neuen Trainingsbildschirm gelangen sondern immer nur
+  // in der Tabelle arbeiten können") it now opens a small in-table menu
+  // instead (change date / delete), since actual value editing already
+  // happens cell-by-cell right here.
   content.querySelectorAll(".xt-date-edit").forEach(th=>{
-    th.addEventListener("click", ()=> enterEditSession(sessById[th.dataset.sessionId]));
+    th.addEventListener("click", ()=> xtSessionMenu(sessById[th.dataset.sessionId]));
   });
   content.querySelectorAll("td.xt-cell[data-editable]").forEach(td=>{
     td.addEventListener("click", ()=> xtEditCellInline(td, sessById));
@@ -2090,18 +2096,69 @@ function xtEditCellInline(td, sessById){
    only way to start a brand-new logged day was to open Kalender and tap an
    empty day; per feedback ("man sollte auch einen Trainingstag hinzufügen
    können genau wie bei der Excel Liste") the Tabelle view now offers the
-   same entry point directly, reusing the existing date+type prompt flow. */
+   same entry point directly, reusing the existing date+type prompt flow.
+   Update 1.9.3: this used to blindly create a new session even when one
+   already existed for that exact date+day_type -- exactly why 17.08 ended
+   up duplicated so many times (user kept retrying it hoping to reach an
+   edit/delete option that didn't exist yet). Now checks xtLastData first
+   and routes into the session menu (delete/change date) instead of
+   creating a duplicate. */
 function xtAddDayFromTable(){
   const todayIso = new Date().toISOString().slice(0,10);
   const dateStr = prompt("Datum für den neuen Trainingstag (JJJJ-MM-TT):", todayIso);
   if(!dateStr) return;
   const trimmed = dateStr.trim();
   if(!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)){ toast("Bitte Datum als JJJJ-MM-TT eingeben"); return; }
-  xtAddNewTraining(trimmed);
+  const choice = prompt(`Neues Training für ${dateLabelFor(trimmed)} -- "push" oder "pull" eingeben:`, "push");
+  if(!choice) return;
+  const dt = choice.trim().toLowerCase();
+  if(dt !== "push" && dt !== "pull"){ toast("Bitte 'push' oder 'pull' eingeben"); return; }
+  const existing = ((xtLastData && xtLastData.hist) || []).find(s => s.date === trimmed && s.day_type === dt);
+  if(existing){
+    toast("Gibt's an dem Tag schon -- öffne stattdessen", "info", 2200);
+    xtSessionMenu({ id: existing.id, day_type: existing.day_type, date: existing.date });
+    return;
+  }
+  startPastSession(trimmed, dt);
 }
 function wireXtAddDayBtn(){
   const btn = $("xt-add-day-btn");
   if(btn) btn.addEventListener("click", xtAddDayFromTable);
+}
+
+/* Update 1.9.3: lightweight in-table menu for a Tabelle date header --
+   change the date or delete the whole training, both without ever leaving
+   the Tabelle/navigating to the full workout screen. Actual set values are
+   already edited cell-by-cell (xtEditCellInline), so this menu only needs
+   to cover the two things that aren't a single cell: the date itself, and
+   removing the training entirely (there was previously no delete path at
+   all anywhere in the app). */
+async function xtSessionMenu(sess){
+  if(!sess) return;
+  const label = dateLabelFor(sess.date) + " (" + (sess.day_type === "push" ? "Push" : "Pull") + ")";
+  const choice = prompt(
+    `${label}\n\n1 = Datum ändern\n2 = Training löschen\n\n(leer lassen zum Abbrechen)`, ""
+  );
+  if(!choice) return;
+  const c = choice.trim();
+  if(c === "1"){
+    const newDate = prompt("Neues Datum (JJJJ-MM-TT):", sess.date);
+    if(!newDate) return;
+    const trimmed = newDate.trim();
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)){ toast("Bitte Datum als JJJJ-MM-TT eingeben"); return; }
+    try{
+      await api(`/api/workout/${sess.id}/date`, {method:"PUT", body: JSON.stringify({date: trimmed})});
+      toast("Datum geändert", "check");
+      await renderExcelTable();
+    }catch(e){ toast("Konnte Datum nicht ändern"); }
+  } else if(c === "2"){
+    if(!confirm(`Training vom ${dateLabelFor(sess.date)} wirklich löschen? Das kann nicht rückgängig gemacht werden.`)) return;
+    try{
+      await api(`/api/workout/${sess.id}`, {method:"DELETE"});
+      toast("Training gelöscht", "check");
+      await renderExcelTable();
+    }catch(e){ toast("Konnte Training nicht löschen"); }
+  }
 }
 
 /* ---- Kalender (month grid) view ---- */
